@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import os
 
 # Configuration de la page
 st.set_page_config(
@@ -10,6 +11,62 @@ st.set_page_config(
     page_icon="💊",
     layout="wide"
 )
+
+# Fonction pour charger les données depuis Google Drive avec fallback
+@st.cache_data(show_spinner=False)
+def load_phmev_data():
+    """Charge les données PHMEV depuis Google Drive ou utilise les données d'exemple"""
+    
+    # URL Google Drive de votre fichier Parquet
+    drive_url = "https://drive.google.com/uc?export=download&id=16gIMMzbqIHG65DNlV9RYps1NzlHsulfM"
+    
+    try:
+        # Tentative de chargement depuis Google Drive
+        st.info("☁️ Chargement des données complètes depuis Google Drive...")
+        
+        # Charger le fichier Parquet directement depuis Google Drive
+        df = pd.read_parquet(drive_url, engine='pyarrow')
+        
+        # Créer les colonnes enrichies si elles n'existent pas
+        if 'etablissement' not in df.columns:
+            st.info("🔧 Création des colonnes enrichies...")
+            
+            # Colonnes dérivées
+            df['etablissement'] = df['nom_etb'].astype(str).fillna('Non spécifié')
+            if 'raison_sociale_etb' in df.columns:
+                df['etablissement'] = df['etablissement'].where(
+                    df['etablissement'] != 'nan', 
+                    df['raison_sociale_etb'].astype(str)
+                )
+            
+            df['medicament'] = df['L_ATC5'].astype(str).fillna('Non spécifié')
+            df['categorie'] = df['categorie_jur'].astype(str).fillna('Non spécifiée')
+            df['ville'] = df['nom_ville'].astype(str).fillna('Non spécifiée')
+            df['region'] = df['region_etb'].fillna(0)
+            df['code_cip'] = df['CIP13'].astype(str)
+            df['libelle_cip'] = df['l_cip13'].fillna('Non spécifié')
+            
+            # Calculs dérivés
+            df['cout_par_boite'] = np.where(df['BOITES'] > 0, df['REM'] / df['BOITES'], 0)
+            df['taux_remboursement'] = np.where(df['REM'] > 0, (df['BSE'] / df['REM']) * 100, 0)
+        
+        st.success(f"🚀 Données complètes chargées avec succès ! ({len(df):,} lignes)")
+        return df
+        
+    except Exception as e:
+        st.warning(f"⚠️ Impossible de charger depuis Google Drive: {str(e)}")
+        st.info("🔄 Utilisation des données d'exemple...")
+        
+        # Fallback vers les données d'exemple
+        return create_demo_data()
+
+# Import de l'application principale
+try:
+    # Essayer d'importer l'app principale si elle existe
+    from app_phmev_sexy import main as main_app
+    USE_FULL_APP = True
+except ImportError:
+    USE_FULL_APP = False
 
 # CSS pour le thème sombre
 st.markdown("""
@@ -69,11 +126,31 @@ def create_demo_data():
 
 # Interface principale
 def main():
+    # Essayer d'utiliser l'app complète d'abord
+    if USE_FULL_APP:
+        try:
+            # Patcher la fonction de chargement de données dans l'app principale
+            import app_phmev_sexy
+            
+            # Remplacer la fonction de chargement par notre version optimisée
+            app_phmev_sexy.load_data_background = load_phmev_data
+            app_phmev_sexy.load_data = load_phmev_data
+            
+            # Lancer l'app principale
+            st.info("🚀 Lancement de la version complète PHMEV Analytics Pro")
+            main_app()
+            return
+            
+        except Exception as e:
+            st.error(f"❌ Erreur avec l'app complète: {str(e)}")
+            st.info("🔄 Basculement vers la version simplifiée...")
+    
+    # Version simplifiée en fallback
     # Header avec style
     st.markdown("""
     <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; margin-bottom: 2rem;">
         <h1 style="color: white; margin: 0; font-size: 3rem;">📊 PHMEV Analytics Pro</h1>
-        <p style="color: white; margin: 0.5rem 0 0 0; font-size: 1.2rem;">Analyse pharmaceutique avancée - Version Démo</p>
+        <p style="color: white; margin: 0.5rem 0 0 0; font-size: 1.2rem;">Analyse pharmaceutique avancée - Version Simplifiée</p>
     </div>
     """, unsafe_allow_html=True)
     
