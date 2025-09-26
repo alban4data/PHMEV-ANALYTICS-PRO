@@ -582,22 +582,22 @@ def load_data_background(nrows=None):
     import os
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # UNIQUEMENT le fichier sample_10k (contient les 3,504,612 lignes)
-    parquet_sample_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_sample_10k.parquet')
+    # UNIQUEMENT le fichier parquet complet (contient les 3,504,612 lignes)
+    parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
     
-    # Utiliser UNIQUEMENT OPEN_PHMEV_2024_sample_10k.parquet
-    if os.path.exists(parquet_sample_path):
+    # Utiliser UNIQUEMENT OPEN_PHMEV_2024.parquet
+    if os.path.exists(parquet_path):
         try:
-            df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
+            df = pd.read_parquet(parquet_path, engine='pyarrow')
             return df
         except Exception as e:
-            st.error(f"❌ Erreur avec OPEN_PHMEV_2024_sample_10k.parquet: {e}")
+            st.error(f"❌ Erreur avec OPEN_PHMEV_2024.parquet: {e}")
             return None
     
     # Si le fichier n'existe pas, erreur
     else:
-        st.error("❌ Fichier OPEN_PHMEV_2024_sample_10k.parquet non trouvé !")
-        st.info("💡 Veuillez vous assurer que le fichier OPEN_PHMEV_2024_sample_10k.parquet est présent dans le répertoire.")
+        st.error("❌ Fichier OPEN_PHMEV_2024.parquet non trouvé !")
+        st.info("💡 Veuillez vous assurer que le fichier OPEN_PHMEV_2024.parquet est présent dans le répertoire.")
         return None
         try:
             import pyarrow.parquet as pq
@@ -733,15 +733,15 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
         import os
         script_dir = os.path.dirname(os.path.abspath(__file__))
         
-        # UNIQUEMENT le fichier sample_10k (contient les 3,504,612 lignes)
-        parquet_sample_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_sample_10k.parquet')
+        # UNIQUEMENT le fichier parquet complet (contient les 3,504,612 lignes)
+        parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
         
-        # Utiliser UNIQUEMENT OPEN_PHMEV_2024_sample_10k.parquet
-        if os.path.exists(parquet_sample_path):
+        # Utiliser UNIQUEMENT OPEN_PHMEV_2024.parquet
+        if os.path.exists(parquet_path):
             status_text.text("🚀 Chargement des 3,504,612 lignes...")
             progress_bar.progress(70)
             try:
-                df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
+                df = pd.read_parquet(parquet_path, engine='pyarrow')
                 progress_bar.progress(100)
                 status_text.text("✅ Données chargées avec succès !")
                 
@@ -755,17 +755,17 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
                 st.session_state.phmev_data_cached = df
                 return df
             except Exception as e:
-                st.error(f"❌ Erreur avec OPEN_PHMEV_2024_sample_10k.parquet: {e}")
+                st.error(f"❌ Erreur avec OPEN_PHMEV_2024.parquet: {e}")
                 progress_bar.empty()
                 status_text.empty()
                 return None
-        
+    
         # Si le fichier n'existe pas, erreur
         else:
             progress_bar.empty()
             status_text.empty()
-            st.error("❌ Fichier OPEN_PHMEV_2024_sample_10k.parquet non trouvé !")
-            st.info("💡 Veuillez vous assurer que le fichier OPEN_PHMEV_2024_sample_10k.parquet est présent dans le répertoire.")
+            st.error("❌ Fichier OPEN_PHMEV_2024.parquet non trouvé !")
+            st.info("💡 Veuillez vous assurer que le fichier OPEN_PHMEV_2024.parquet est présent dans le répertoire.")
             return None
         
         # En local, essayer d'abord le format Parquet
@@ -1938,8 +1938,8 @@ def main():
         - **Lignes totales:** {len(df):,}
         - **Lignes filtrées:** {len(df_filtered):,}
         - **Taux de filtrage:** {(len(df_filtered)/len(df)*100):.1f}%
-        - **Source:** OPEN_PHMEV_2024_sample_10k.parquet
-on je        
+        - **Source:** OPEN_PHMEV_2024.parquet
+        
         ### 🔧 **Colonnes Analysées**
         - **BOITES:** Nombre de boîtes délivrées
         - **REM:** Montant remboursé par l'Assurance Maladie (€)
