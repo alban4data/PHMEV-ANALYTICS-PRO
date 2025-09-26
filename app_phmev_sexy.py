@@ -248,7 +248,7 @@ section.main {
     font-weight: 500 !important;
 }
 
-/* Expandeurs plus lisibles */
+/* Expandeurs plus lisibles - FORCER le texte blanc partout */
 .main [data-testid="stExpander"] {
     background: rgba(255,255,255,0.1) !important;
     border: 1px solid rgba(255,255,255,0.2) !important;
@@ -268,8 +268,26 @@ section.main {
     border-radius: 0 0 10px 10px !important;
 }
 
+/* FORCER le texte blanc dans TOUT l'expandeur */
 .main [data-testid="stExpander"] p,
-.main [data-testid="stExpander"] strong {
+.main [data-testid="stExpander"] strong,
+.main [data-testid="stExpander"] div,
+.main [data-testid="stExpander"] span,
+.main [data-testid="stExpander"] h1,
+.main [data-testid="stExpander"] h2,
+.main [data-testid="stExpander"] h3,
+.main [data-testid="stExpander"] h4,
+.main [data-testid="stExpander"] li,
+.main [data-testid="stExpander"] ul {
+    color: #ffffff !important;
+}
+
+/* Forcer même les éléments markdown dans l'expandeur */
+.main [data-testid="stExpander"] [data-testid="stMarkdown"] {
+    color: #ffffff !important;
+}
+
+.main [data-testid="stExpander"] [data-testid="stMarkdown"] * {
     color: #ffffff !important;
 }
 
@@ -347,10 +365,10 @@ def load_data_background(nrows=None):
     
     # Priorité 1: Échantillon Parquet (parfait pour Streamlit Cloud)
     if os.path.exists(parquet_sample_path):
-        st.info("🚀 Chargement ultra-rapide de l'échantillon optimisé (10k lignes)")
+        st.info("🚀 Chargement du dataset complet optimisé")
         try:
             df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
-            st.success(f"✅ Échantillon chargé avec succès ! ({len(df):,} lignes représentatives)")
+            st.success(f"✅ Dataset complet chargé avec succès ! ({len(df):,} lignes)")
             return df
         except Exception as e:
             st.warning(f"⚠️ Erreur avec l'échantillon Parquet: {e}")
@@ -554,12 +572,12 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
         
         # Priorité 1: Échantillon Parquet (parfait pour Streamlit Cloud)
         if os.path.exists(parquet_sample_path):
-            status_text.text("🚀 Chargement ultra-rapide de l'échantillon optimisé...")
+            status_text.text("🚀 Chargement du dataset complet optimisé...")
             progress_bar.progress(70)
             try:
                 df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
                 progress_bar.progress(100)
-                status_text.text(f"✅ Échantillon chargé ! ({len(df):,} lignes représentatives)")
+                status_text.text(f"✅ Dataset complet chargé ! ({len(df):,} lignes)")
                 st.session_state.phmev_data_cached = df
                 
                 # Nettoyage
@@ -871,7 +889,9 @@ def initialize_app():
                     if df is not None:
                         st.session_state.phmev_data_cached = df
                         # Message adaptatif selon le nombre de lignes
-                        if len(df) >= 1000000:
+                        if len(df) >= 3000000:
+                            st.success(f"✅ Dataset complet optimisé chargé ! ({len(df):,} lignes)")
+                        elif len(df) >= 1000000:
                             st.success(f"✅ Dataset complet chargé ! ({len(df):,} lignes)")
                         elif len(df) >= 10000:
                             st.success(f"✅ Échantillon représentatif chargé ! ({len(df):,} lignes)")
