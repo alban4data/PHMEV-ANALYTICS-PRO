@@ -577,50 +577,13 @@ def load_data_background(nrows=None):
     # Fallback final: données d'exemple
     else:
         try:
-            st.info("☁️ Chargement des données depuis Google Drive...")
-            
-            # URL Google Drive
-            drive_url = "https://drive.google.com/uc?export=download&id=16gIMMzbqIHG65DNlV9RYps1NzlHsulfM"
-            
-            # Chargement depuis Google Drive
-            df = pd.read_parquet(drive_url, engine='pyarrow')
-            
-            # Créer les colonnes enrichies si nécessaire
-            if 'etablissement' not in df.columns:
-                st.info("🔧 Création des colonnes enrichies...")
-                
-                df['etablissement'] = df['nom_etb'].astype(str).fillna('Non spécifié')
-                if 'raison_sociale_etb' in df.columns:
-                    df['etablissement'] = df['etablissement'].where(
-                        df['etablissement'] != 'nan', 
-                        df['raison_sociale_etb'].astype(str)
-                    )
-                
-                df['medicament'] = df['L_ATC5'].astype(str).fillna('Non spécifié')
-                df['categorie'] = df['categorie_jur'].astype(str).fillna('Non spécifiée')
-                df['ville'] = df['nom_ville'].astype(str).fillna('Non spécifiée')
-                df['region'] = df['region_etb'].fillna(0)
-                df['code_cip'] = df['CIP13'].astype(str)
-                df['libelle_cip'] = df['l_cip13'].fillna('Non spécifié')
-                
-                # Calculs dérivés
-                df['cout_par_boite'] = np.where(df['BOITES'] > 0, df['REM'] / df['BOITES'], 0)
-                df['taux_remboursement'] = np.where(df['REM'] > 0, (df['BSE'] / df['REM']) * 100, 0)
-            
-            st.success(f"🚀 Données complètes chargées depuis Google Drive ! ({len(df):,} lignes)")
-            return df
-            
-        except Exception as drive_error:
-            st.warning(f"⚠️ Erreur Google Drive: {drive_error}")
-            
-            # Fallback vers données d'exemple
-            try:
-                from sample_data import create_sample_data
-                st.info("🔄 Utilisation des données d'exemple...")
-                return create_sample_data()
-            except ImportError as e:
-                st.error(f"❌ Impossible de charger les données d'exemple: {e}")
-                return None
+            from sample_data import create_sample_data
+            st.info("🔄 Utilisation des données d'exemple pour la démonstration...")
+            st.info("💡 Les données d'exemple contiennent 1000 lignes représentatives")
+            return create_sample_data()
+        except ImportError as e:
+            st.error(f"❌ Impossible de charger les données d'exemple: {e}")
+            return None
     
     # En local, essayer d'abord le format Parquet
     if os.path.exists(parquet_path):

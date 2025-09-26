@@ -17,48 +17,12 @@ st.set_page_config(
 def load_phmev_data():
     """Charge les données PHMEV depuis Google Drive ou utilise les données d'exemple"""
     
-    # URL Google Drive de votre fichier Parquet
-    drive_url = "https://drive.google.com/uc?export=download&id=16gIMMzbqIHG65DNlV9RYps1NzlHsulfM"
+            # Pas de Google Drive - utilisation des données d'exemple
+            st.info("🔄 Pas de données locales détectées")
     
-    try:
-        # Tentative de chargement depuis Google Drive
-        st.info("☁️ Chargement des données complètes depuis Google Drive...")
-        
-        # Charger le fichier Parquet directement depuis Google Drive
-        df = pd.read_parquet(drive_url, engine='pyarrow')
-        
-        # Créer les colonnes enrichies si elles n'existent pas
-        if 'etablissement' not in df.columns:
-            st.info("🔧 Création des colonnes enrichies...")
-            
-            # Colonnes dérivées
-            df['etablissement'] = df['nom_etb'].astype(str).fillna('Non spécifié')
-            if 'raison_sociale_etb' in df.columns:
-                df['etablissement'] = df['etablissement'].where(
-                    df['etablissement'] != 'nan', 
-                    df['raison_sociale_etb'].astype(str)
-                )
-            
-            df['medicament'] = df['L_ATC5'].astype(str).fillna('Non spécifié')
-            df['categorie'] = df['categorie_jur'].astype(str).fillna('Non spécifiée')
-            df['ville'] = df['nom_ville'].astype(str).fillna('Non spécifiée')
-            df['region'] = df['region_etb'].fillna(0)
-            df['code_cip'] = df['CIP13'].astype(str)
-            df['libelle_cip'] = df['l_cip13'].fillna('Non spécifié')
-            
-            # Calculs dérivés
-            df['cout_par_boite'] = np.where(df['BOITES'] > 0, df['REM'] / df['BOITES'], 0)
-            df['taux_remboursement'] = np.where(df['REM'] > 0, (df['BSE'] / df['REM']) * 100, 0)
-        
-        st.success(f"🚀 Données complètes chargées avec succès ! ({len(df):,} lignes)")
-        return df
-        
-    except Exception as e:
-        st.warning(f"⚠️ Impossible de charger depuis Google Drive: {str(e)}")
-        st.info("🔄 Utilisation des données d'exemple...")
-        
-        # Fallback vers les données d'exemple
-        return create_demo_data()
+    # Utilisation directe des données d'exemple
+    st.info("🔄 Utilisation des données d'exemple pour la démonstration...")
+    return create_demo_data()
 
 # Import de l'application principale
 try:
