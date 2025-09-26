@@ -470,6 +470,16 @@ def load_data_background(nrows=None):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
     
+    # Si le fichier principal n'existe pas, utiliser les données d'exemple
+    if not os.path.exists(csv_path):
+        try:
+            from sample_data import create_sample_data
+            st.warning("⚠️ Fichier PHMEV principal non trouvé. Utilisation de données d'exemple pour la démonstration.")
+            return create_sample_data()
+        except ImportError:
+            st.error("❌ Impossible de charger les données d'exemple. Veuillez ajouter le fichier OPEN_PHMEV_2024.CSV")
+            return None
+    
     # Types de données optimisés pour économiser la mémoire
     dtype_dict = {
         'CIP13': 'str', 
@@ -561,6 +571,18 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
         import os
         script_dir = os.path.dirname(os.path.abspath(__file__))
         csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
+        
+        # Si le fichier principal n'existe pas, utiliser les données d'exemple
+        if not os.path.exists(csv_path):
+            try:
+                from sample_data import create_sample_data
+                st.warning("⚠️ Fichier PHMEV principal non trouvé. Utilisation de données d'exemple pour la démonstration.")
+                df = create_sample_data()
+                st.session_state.phmev_data_cached = df
+                return df
+            except ImportError:
+                st.error("❌ Impossible de charger les données d'exemple. Veuillez ajouter le fichier OPEN_PHMEV_2024.CSV")
+                return None
         
         # Optimisation mémoire maximale (sans category pour éviter les erreurs)
         dtype_dict = {
