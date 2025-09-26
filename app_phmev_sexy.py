@@ -515,7 +515,8 @@ def load_data_background(nrows=None):
     import os
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # Priorité 1: Parquet (plus rapide)
+    # Priorité 1: Parquet échantillon (optimisé pour Streamlit Cloud)
+    parquet_sample_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_sample_10k.parquet')
     parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
     csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
     
@@ -527,8 +528,54 @@ def load_data_background(nrows=None):
         not os.path.exists(parquet_path)  # Si pas de Parquet local, on est probablement sur le cloud
     )
     
-    # Essayer Google Drive si pas de fichier local
-    if not os.path.exists(parquet_path) and not os.path.exists(csv_path):
+    # Priorité 1: Échantillon Parquet (parfait pour Streamlit Cloud)
+    if os.path.exists(parquet_sample_path):
+        st.info("🚀 Chargement ultra-rapide de l'échantillon optimisé (10k lignes)")
+        try:
+            df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
+            st.success(f"✅ Échantillon chargé avec succès ! ({len(df):,} lignes représentatives)")
+            return df
+        except Exception as e:
+            st.warning(f"⚠️ Erreur avec l'échantillon Parquet: {e}")
+    
+    # Priorité 2: Parquet complet (en local)
+    elif os.path.exists(parquet_path):
+        st.info("🚀 Chargement ultra-rapide depuis le fichier Parquet complet")
+        try:
+            df = pd.read_parquet(parquet_path, engine='pyarrow')
+            
+            # Vérifier si les colonnes dérivées existent déjà
+            if 'etablissement' not in df.columns:
+                st.info("🔧 Création des colonnes enrichies...")
+                # Création de colonnes enrichies avec gestion sécurisée des NaN
+                df['etablissement'] = df['nom_etb'].astype(str).fillna('Non spécifié')
+                if 'raison_sociale_etb' in df.columns:
+                    df['etablissement'] = df['etablissement'].where(
+                        df['etablissement'] != 'nan', 
+                        df['raison_sociale_etb'].astype(str)
+                    )
+                
+                df['medicament'] = df['L_ATC5'].astype(str).fillna('Non spécifié')
+                df['categorie'] = df['categorie_jur'].astype(str).fillna('Non spécifiée')
+                df['ville'] = df['nom_ville'].astype(str).fillna('Non spécifiée')
+                df['region'] = df['region_etb'].fillna(0)
+                df['code_cip'] = df['CIP13'].astype(str)
+                df['libelle_cip'] = df['l_cip13'].fillna('Non spécifié')
+                
+                # Calculs dérivés
+                df['cout_par_boite'] = np.where(df['BOITES'] > 0, df['REM'] / df['BOITES'], 0)
+                df['taux_remboursement'] = np.where(df['REM'] > 0, (df['BSE'] / df['REM']) * 100, 0)
+            
+            return df
+        except Exception as e:
+            st.warning(f"⚠️ Erreur avec le fichier Parquet complet: {e}")
+    
+    # Priorité 3: CSV si disponible
+    elif os.path.exists(csv_path):
+        st.info("📁 Chargement depuis le fichier CSV")
+    
+    # Fallback final: données d'exemple
+    else:
         try:
             st.info("☁️ Chargement des données depuis Google Drive...")
             
