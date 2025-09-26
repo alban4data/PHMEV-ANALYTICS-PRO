@@ -5,8 +5,8 @@
 *.xls
 OPEN_PHMEV_2024.CSV
 # *.parquet - Commenté pour permettre les fichiers Parquet optimisés
-# OPEN_PHMEV_2024.parquet - Fichier complet (59MB) - ignoré
-OPEN_PHMEV_2024.parquet
+# OPEN_PHMEV_2024.parquet - Fichier complet (59MB) - maintenant autorisé pour Streamlit Cloud
+# OPEN_PHMEV_2024.parquet
 # OPEN_PHMEV_2024_sample_10k.parquet - Échantillon autorisé (0.9MB)
 !OPEN_PHMEV_2024_sample_10k.parquet
 
