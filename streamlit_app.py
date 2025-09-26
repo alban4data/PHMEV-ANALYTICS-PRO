@@ -1,115 +1,79 @@
 """
-🚀 PHMEV Analytics Pro - Version DuckDB
-Application d'analyse des données pharmaceutiques avec DuckDB pour optimiser la mémoire
+🏥 PHMEV Analytics Pro - Version Finale BigQuery
+Tous les filtres hiérarchiques + TOP N optimisé + Performance maximale
 """
 
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import duckdb
-import os
-import gc
+import numpy as np
 from datetime import datetime
+from google.cloud import bigquery
+from google.oauth2 import service_account
 
 # Configuration de la page
 st.set_page_config(
-    page_title="🏥 PHMEV Analytics Pro - DuckDB",
-    page_icon="💊",
+    page_title="🏥 PHMEV Analytics Pro",
+    page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# CSS pour le style (version allégée)
+# CSS moderne
 st.markdown("""
 <style>
-/* 🎨 VARIABLES CSS */
-:root {
-    --primary-color: #667eea;
-    --secondary-color: #764ba2;
-    --success-color: #10b981;
-    --warning-color: #f59e0b;
-    --error-color: #ef4444;
-    --bg-dark: #0e1117;
-    --bg-secondary: #1e2130;
-    --text-light: #fafafa;
-}
-
-/* 🌟 STYLE GÉNÉRAL */
-.main {
-    padding: 1rem 2rem;
-}
-
-/* 📊 MÉTRIQUES */
-[data-testid="metric-container"] {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    border: none;
-    padding: 1rem;
-    border-radius: 12px;
+.main-header {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem;
+    border-radius: 10px;
     color: white;
-    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+    text-align: center;
+    margin-bottom: 2rem;
 }
 
-[data-testid="metric-container"] > div {
-    color: white !important;
-}
-
-/* 📈 GRAPHIQUES */
-.js-plotly-plot {
+.kpi-container {
+    background: white;
+    padding: 1.5rem;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    border-left: 5px solid #667eea;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin: 1rem 0;
 }
 
-/* 📋 TABLES */
-[data-testid="stDataFrame"] {
-    background: white !important;
-    border-radius: 8px !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+.kpi-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #667eea;
+    margin: 0;
 }
 
-[data-testid="stDataFrame"] td {
-    background: white !important;
-    color: #000000 !important;
-    border-bottom: 1px solid #e5e7eb !important;
+.kpi-label {
+    color: #666;
+    font-size: 1rem;
+    margin-top: 0.5rem;
 }
 
 [data-testid="stDataFrame"] th {
-    background: #f9fafb !important;
-    color: #000000 !important;
-    font-weight: 600 !important;
+    background-color: #667eea !important;
+    color: white !important;
+    font-weight: bold !important;
 }
 
-/* 🔄 SIDEBAR */
-.css-1d391kg {
-    background: linear-gradient(180deg, var(--bg-secondary), var(--bg-dark));
+[data-testid="stDataFrame"] td {
+    background-color: white !important;
+    color: black !important;
 }
 
-/* ⚡ BOUTONS */
-.stButton > button {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+[data-testid="stDataFrame"] tr:nth-child(even) td {
+    background-color: #f8f9fa !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # Fonctions utilitaires
 def format_number(value):
-    """Format un nombre avec séparateurs français"""
     if pd.isna(value) or value == 0:
         return "0"
-    
     if value >= 1_000_000:
         return f"{value/1_000_000:.1f}M"
     elif value >= 1_000:
@@ -118,10 +82,8 @@ def format_number(value):
         return f"{value:.0f}"
 
 def format_currency(value):
-    """Format une valeur monétaire en euros"""
     if pd.isna(value) or value == 0:
         return "0,00€"
-    
     if value >= 1_000_000:
         return f"{value/1_000_000:.1f}M€"
     elif value >= 1_000:
@@ -129,1004 +91,696 @@ def format_currency(value):
     else:
         return f"{value:,.2f}€".replace(',', ' ').replace('.', ',').replace(' ', '.')
 
-# Initialisation de la connexion DuckDB
+# Configuration BigQuery
 @st.cache_resource
-def init_duckdb():
-    """🦆 Initialise la connexion DuckDB"""
-    conn = duckdb.connect(':memory:')
-    return conn
+def init_bigquery():
+    try:
+        if "gcp_service_account" in st.secrets:
+            credentials_info = st.secrets["gcp_service_account"]
+            credentials = service_account.Credentials.from_service_account_info(credentials_info)
+            client = bigquery.Client(credentials=credentials, project=credentials_info["project_id"])
+            return client, credentials_info["project_id"]
+        else:
+            client = bigquery.Client(project='test-db-473321')
+            return client, 'test-db-473321'
+    except Exception as e:
+        st.error(f"❌ Erreur de connexion BigQuery: {e}")
+        return None, None
 
-@st.cache_resource
-def load_data_duckdb():
-    """🚀 Charge les données PHMEV avec DuckDB (optimisé mémoire)"""
-    conn = init_duckdb()
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
-    
-    progress_placeholder = st.empty()
+@st.cache_data(ttl=86400)  # Cache 24 heures
+def get_base_filter_options():
+    """Récupère les options de base depuis le cache (ultra-rapide)"""
+    import pickle
+    import json
+    import os
+    from datetime import datetime, timedelta
     
     try:
-        progress_placeholder.info("🦆 Initialisation DuckDB...")
+        # Vérifier si le cache pickle existe et est récent (moins de 24h)
+        cache_file = 'filter_options_cache.pkl'
+        if os.path.exists(cache_file):
+            cache_age = datetime.now() - datetime.fromtimestamp(os.path.getmtime(cache_file))
+            if cache_age < timedelta(hours=24):
+                with open(cache_file, 'rb') as f:
+                    options = pickle.load(f)
+                st.success(f"⚡ Cache chargé instantanément ! ({len(options.get('medicaments', []))} médicaments disponibles)")
+                return options
         
-        if not os.path.exists(parquet_path):
-            st.error("❌ Fichier OPEN_PHMEV_2024.parquet non trouvé !")
-            return None
-            
-        progress_placeholder.info("📊 Chargement du fichier parquet dans DuckDB...")
+        # Fallback vers JSON si pickle non disponible
+        json_file = 'filter_options_cache.json'
+        if os.path.exists(json_file):
+            with open(json_file, 'r', encoding='utf-8') as f:
+                options = json.load(f)
+            st.info("📄 Cache JSON chargé")
+            return options
         
-        # Créer une table DuckDB à partir du fichier parquet
-        conn.execute("""
-            CREATE TABLE phmev AS 
-            SELECT * FROM read_parquet(?)
-        """, [parquet_path])
-        
-        progress_placeholder.info("🔄 Filtrage des données non informatives...")
-        
-        # Filtrer les données non informatives directement en SQL
-        conn.execute("""
-            DELETE FROM phmev 
-            WHERE l_cip13 IN ('Non restitué', 'Non spécifié', 'Honoraires de dispensation')
-            OR l_cip13 IS NULL
-        """)
-        
-        progress_placeholder.info("✨ Création des colonnes dérivées...")
-        
-        # Ajouter les colonnes dérivées avec SQL
-        conn.execute("""
-            ALTER TABLE phmev ADD COLUMN etablissement VARCHAR;
-            ALTER TABLE phmev ADD COLUMN medicament VARCHAR;
-            ALTER TABLE phmev ADD COLUMN categorie VARCHAR;
-            ALTER TABLE phmev ADD COLUMN ville VARCHAR;
-            ALTER TABLE phmev ADD COLUMN region_clean VARCHAR;
-            ALTER TABLE phmev ADD COLUMN code_cip VARCHAR;
-            ALTER TABLE phmev ADD COLUMN libelle_cip VARCHAR;
-            ALTER TABLE phmev ADD COLUMN cout_par_boite DOUBLE;
-            ALTER TABLE phmev ADD COLUMN taux_remboursement DOUBLE;
-        """)
-        
-        # Remplir les colonnes dérivées
-        conn.execute("""
-            UPDATE phmev SET
-                etablissement = COALESCE(NULLIF(nom_etb, ''), NULLIF(raison_sociale_etb, ''), 'Non spécifié'),
-                medicament = COALESCE(NULLIF(L_ATC5, ''), 'Non spécifié'),
-                categorie = COALESCE(NULLIF(categorie_jur, ''), 'Non spécifiée'),
-                ville = COALESCE(NULLIF(nom_ville, ''), 'Non spécifiée'),
-                region_clean = COALESCE(region_etb, 0),
-                code_cip = CAST(CIP13 AS VARCHAR),
-                libelle_cip = COALESCE(NULLIF(l_cip13, ''), 'Non spécifié'),
-                cout_par_boite = CASE WHEN BOITES > 0 THEN REM / BOITES ELSE 0 END,
-                taux_remboursement = CASE WHEN BSE > 0 THEN (REM / BSE) * 100 ELSE 0 END
-        """)
-        
-        # Obtenir le nombre de lignes
-        count_result = conn.execute("SELECT COUNT(*) FROM phmev").fetchone()
-        total_rows = count_result[0] if count_result else 0
-        
-        progress_placeholder.success(f"✅ {total_rows:,} lignes chargées et prêtes !")
-        progress_placeholder.empty()
-        
-        return conn
+        # Fallback vers BigQuery si aucun cache
+        st.warning("⚠️ Aucun cache trouvé, chargement depuis BigQuery...")
+        return get_base_filter_options_from_bigquery()
         
     except Exception as e:
-        progress_placeholder.error(f"❌ Erreur DuckDB: {e}")
-        st.info(f"🔍 Type d'erreur: {type(e).__name__}")
-        return None
+        st.error(f"❌ Erreur cache: {e}")
+        return get_base_filter_options_from_bigquery()
 
-def get_filter_options_duckdb(conn, filter_type, current_filters=None):
-    """📊 Obtient les options disponibles pour un type de filtre avec filtrage interdépendant"""
-    if conn is None:
-        return []
+def get_base_filter_options_from_bigquery():
+    """Fallback : récupère les options depuis BigQuery"""
+    client, project_id = init_bigquery()
+    if not client:
+        return {}
     
     try:
-        # Construire la clause WHERE basée sur les filtres actuels
-        where_clauses = []
-        params = []
+        query = f"""
+        SELECT DISTINCT
+            atc1, l_atc1,
+            atc2, L_ATC2,
+            atc3, L_ATC3,
+            atc4, L_ATC4,
+            ATC5, L_ATC5,
+            COALESCE(NULLIF(nom_ville, ''), 'Non spécifiée') as ville,
+            COALESCE(NULLIF(categorie_jur, ''), 'Non spécifiée') as categorie,
+            COALESCE(NULLIF(nom_etb, ''), NULLIF(raison_sociale_etb, ''), 'Non spécifié') as etablissement,
+            COALESCE(NULLIF(l_cip13, ''), 'Non spécifié') as medicament
+        FROM `{project_id}.dataset.PHMEV2024`
+        WHERE l_cip13 NOT IN ('Non restitué', 'Non spécifié', 'Honoraires de dispensation')
+        AND l_cip13 IS NOT NULL
+        """
         
-        if current_filters:
-            if current_filters.get('atc1_filtre'):
-                placeholders = ','.join(['?' for _ in current_filters['atc1_filtre']])
-                where_clauses.append(f"l_atc1 IN ({placeholders})")
-                params.extend(current_filters['atc1_filtre'])
-                
-            if current_filters.get('atc2_filtre'):
-                placeholders = ','.join(['?' for _ in current_filters['atc2_filtre']])
-                where_clauses.append(f"L_ATC2 IN ({placeholders})")
-                params.extend(current_filters['atc2_filtre'])
-                
-            if current_filters.get('atc3_filtre'):
-                placeholders = ','.join(['?' for _ in current_filters['atc3_filtre']])
-                where_clauses.append(f"L_ATC3 IN ({placeholders})")
-                params.extend(current_filters['atc3_filtre'])
-                
-            if current_filters.get('atc4_filtre'):
-                placeholders = ','.join(['?' for _ in current_filters['atc4_filtre']])
-                where_clauses.append(f"L_ATC4 IN ({placeholders})")
-                params.extend(current_filters['atc4_filtre'])
-                
-            if current_filters.get('atc5_filtre'):
-                placeholders = ','.join(['?' for _ in current_filters['atc5_filtre']])
-                where_clauses.append(f"L_ATC5 IN ({placeholders})")
-                params.extend(current_filters['atc5_filtre'])
-                
-            if current_filters.get('ville_filtre'):
-                placeholders = ','.join(['?' for _ in current_filters['ville_filtre']])
-                where_clauses.append(f"ville IN ({placeholders})")
-                params.extend(current_filters['ville_filtre'])
-                
-            if current_filters.get('categorie_filtre'):
-                placeholders = ','.join(['?' for _ in current_filters['categorie_filtre']])
-                where_clauses.append(f"categorie IN ({placeholders})")
-                params.extend(current_filters['categorie_filtre'])
-                
-            if current_filters.get('etablissement_filtre'):
-                placeholders = ','.join(['?' for _ in current_filters['etablissement_filtre']])
-                where_clauses.append(f"etablissement IN ({placeholders})")
-                params.extend(current_filters['etablissement_filtre'])
-                
-            if current_filters.get('libelle_filtre'):
-                placeholders = ','.join(['?' for _ in current_filters['libelle_filtre']])
-                where_clauses.append(f"libelle_cip IN ({placeholders})")
-                params.extend(current_filters['libelle_filtre'])
+        df = client.query(query).to_dataframe()
         
-        # Ajouter les conditions spécifiques au type de filtre
-        if filter_type == 'atc1':
-            where_clauses.append("atc1 IS NOT NULL AND l_atc1 IS NOT NULL")
-        elif filter_type == 'atc2':
-            where_clauses.append("atc2 IS NOT NULL AND L_ATC2 IS NOT NULL")
-        elif filter_type == 'atc3':
-            where_clauses.append("atc3 IS NOT NULL AND L_ATC3 IS NOT NULL")
-        elif filter_type == 'atc4':
-            where_clauses.append("atc4 IS NOT NULL AND L_ATC4 IS NOT NULL")
-        elif filter_type == 'atc5':
-            where_clauses.append("ATC5 IS NOT NULL AND L_ATC5 IS NOT NULL")
-        elif filter_type == 'villes':
-            where_clauses.append("ville IS NOT NULL AND ville != 'Non spécifiée'")
-        elif filter_type == 'categories':
-            where_clauses.append("categorie IS NOT NULL AND categorie != 'Non spécifiée'")
-        elif filter_type == 'etablissements':
-            where_clauses.append("etablissement IS NOT NULL AND etablissement != 'Non spécifié'")
-        elif filter_type == 'medicaments':
-            where_clauses.append("libelle_cip IS NOT NULL AND libelle_cip != 'Non spécifié'")
+        options = {}
+        if 'atc1' in df.columns:
+            options['atc1'] = sorted([(row['atc1'], row['l_atc1']) for _, row in df[['atc1', 'l_atc1']].dropna().drop_duplicates().iterrows()])
+        if 'atc2' in df.columns:
+            options['atc2'] = sorted([(row['atc2'], row['L_ATC2']) for _, row in df[['atc2', 'L_ATC2']].dropna().drop_duplicates().iterrows()])
+        if 'atc3' in df.columns:
+            options['atc3'] = sorted([(row['atc3'], row['L_ATC3']) for _, row in df[['atc3', 'L_ATC3']].dropna().drop_duplicates().iterrows()])
+        if 'atc4' in df.columns:
+            options['atc4'] = sorted([(row['atc4'], row['L_ATC4']) for _, row in df[['atc4', 'L_ATC4']].dropna().drop_duplicates().iterrows()])
+        if 'ATC5' in df.columns:
+            options['atc5'] = sorted([(row['ATC5'], row['L_ATC5']) for _, row in df[['ATC5', 'L_ATC5']].dropna().drop_duplicates().iterrows()])
         
-        where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        options['villes'] = sorted(df['ville'].dropna().unique().tolist())
+        options['categories'] = sorted(df['categorie'].dropna().unique().tolist())
+        options['etablissements'] = sorted(df['etablissement'].dropna().unique().tolist())
+        options['medicaments'] = sorted(df['medicament'].dropna().unique().tolist())
         
-        if filter_type == 'atc1':
-            query = f"""
-                SELECT DISTINCT atc1, l_atc1 
-                FROM phmev 
-                {where_sql}
-                ORDER BY l_atc1
-            """
-        elif filter_type == 'atc2':
-            query = f"""
-                SELECT DISTINCT atc2, L_ATC2 
-                FROM phmev 
-                {where_sql}
-                ORDER BY L_ATC2
-            """
-        elif filter_type == 'atc3':
-            query = f"""
-                SELECT DISTINCT atc3, L_ATC3 
-                FROM phmev 
-                {where_sql}
-                ORDER BY L_ATC3
-            """
-        elif filter_type == 'atc4':
-            query = f"""
-                SELECT DISTINCT atc4, L_ATC4 
-                FROM phmev 
-                {where_sql}
-                ORDER BY L_ATC4
-            """
-        elif filter_type == 'atc5':
-            query = f"""
-                SELECT DISTINCT ATC5, L_ATC5 
-                FROM phmev 
-                {where_sql}
-                ORDER BY L_ATC5
-            """
-        elif filter_type in ['villes', 'categories', 'etablissements', 'medicaments']:
-            column_map = {
-                'villes': 'ville',
-                'categories': 'categorie', 
-                'etablissements': 'etablissement',
-                'medicaments': 'libelle_cip'
-            }
-            column = column_map[filter_type]
-            query = f"""
-                SELECT DISTINCT {column}
-                FROM phmev 
-                {where_sql}
-                ORDER BY {column}
-            """
-        else:
-            return []
+        return options
         
-        result = conn.execute(query, params).fetchall()
-        
-        if filter_type in ['atc1', 'atc2', 'atc3', 'atc4', 'atc5']:
-            return [(row[0], row[1]) for row in result]
-        else:
-            return [row[0] for row in result]
-            
     except Exception as e:
-        st.error(f"Erreur lors de la récupération des options {filter_type}: {e}")
-        return []
+        st.error(f"❌ Erreur BigQuery: {e}")
+        return {}
 
-def get_filtered_data_duckdb(conn, filters, min_boites=0):
-    """🔄 Applique les filtres et retourne les données"""
-    if conn is None:
-        return pd.DataFrame()
+@st.cache_data(ttl=300)  # Cache 5 minutes pour les filtres dynamiques
+def get_filtered_options(current_filters):
+    """Récupère les options filtrées dynamiquement"""
+    client, project_id = init_bigquery()
+    if not client:
+        return {}
     
     try:
-        where_clauses = []
-        params = []
+        # Construire la clause WHERE avec les filtres actuels
+        where_conditions = [
+            "l_cip13 NOT IN ('Non restitué', 'Non spécifié', 'Honoraires de dispensation')",
+            "l_cip13 IS NOT NULL"
+        ]
         
-        # Construire les clauses WHERE pour tous les niveaux ATC
-        if filters.get('atc1_filtre'):
-            placeholders = ','.join(['?' for _ in filters['atc1_filtre']])
-            where_clauses.append(f"l_atc1 IN ({placeholders})")
-            params.extend(filters['atc1_filtre'])
-            
-        if filters.get('atc2_filtre'):
-            placeholders = ','.join(['?' for _ in filters['atc2_filtre']])
-            where_clauses.append(f"L_ATC2 IN ({placeholders})")
-            params.extend(filters['atc2_filtre'])
-            
-        if filters.get('atc3_filtre'):
-            placeholders = ','.join(['?' for _ in filters['atc3_filtre']])
-            where_clauses.append(f"L_ATC3 IN ({placeholders})")
-            params.extend(filters['atc3_filtre'])
-            
-        if filters.get('atc4_filtre'):
-            placeholders = ','.join(['?' for _ in filters['atc4_filtre']])
-            where_clauses.append(f"L_ATC4 IN ({placeholders})")
-            params.extend(filters['atc4_filtre'])
-            
-        if filters.get('atc5_filtre'):
-            placeholders = ','.join(['?' for _ in filters['atc5_filtre']])
-            where_clauses.append(f"L_ATC5 IN ({placeholders})")
-            params.extend(filters['atc5_filtre'])
-            
-        if filters.get('ville_filtre'):
-            placeholders = ','.join(['?' for _ in filters['ville_filtre']])
-            where_clauses.append(f"ville IN ({placeholders})")
-            params.extend(filters['ville_filtre'])
-            
-        if filters.get('categorie_filtre'):
-            placeholders = ','.join(['?' for _ in filters['categorie_filtre']])
-            where_clauses.append(f"categorie IN ({placeholders})")
-            params.extend(filters['categorie_filtre'])
-            
-        if filters.get('etablissement_filtre'):
-            placeholders = ','.join(['?' for _ in filters['etablissement_filtre']])
-            where_clauses.append(f"etablissement IN ({placeholders})")
-            params.extend(filters['etablissement_filtre'])
-            
-        if filters.get('libelle_filtre'):
-            placeholders = ','.join(['?' for _ in filters['libelle_filtre']])
-            where_clauses.append(f"libelle_cip IN ({placeholders})")
-            params.extend(filters['libelle_filtre'])
+        # Ajouter les filtres existants
+        for level in ['atc1', 'atc2', 'atc3', 'atc4']:
+            if current_filters.get(level):
+                level_list = "', '".join(current_filters[level])
+                where_conditions.append(f"{level} IN ('{level_list}')")
         
-        # Filtre minimum de boîtes
-        if min_boites > 0:
-            where_clauses.append("BOITES >= ?")
-            params.append(min_boites)
+        if current_filters.get('atc5'):
+            atc5_list = "', '".join(current_filters['atc5'])
+            where_conditions.append(f"ATC5 IN ('{atc5_list}')")
         
-        where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        if current_filters.get('villes'):
+            villes_list = "', '".join(current_filters['villes'])
+            where_conditions.append(f"COALESCE(NULLIF(nom_ville, ''), 'Non spécifiée') IN ('{villes_list}')")
+        
+        if current_filters.get('categories'):
+            cat_list = "', '".join(current_filters['categories'])
+            where_conditions.append(f"COALESCE(NULLIF(categorie_jur, ''), 'Non spécifiée') IN ('{cat_list}')")
+        
+        where_clause = " AND ".join(where_conditions)
         
         query = f"""
-            SELECT *
-            FROM phmev
-            {where_sql}
+        SELECT DISTINCT
+            atc1, l_atc1,
+            atc2, L_ATC2,
+            atc3, L_ATC3,
+            atc4, L_ATC4,
+            ATC5, L_ATC5,
+            COALESCE(NULLIF(nom_ville, ''), 'Non spécifiée') as ville,
+            COALESCE(NULLIF(categorie_jur, ''), 'Non spécifiée') as categorie,
+            COALESCE(NULLIF(nom_etb, ''), NULLIF(raison_sociale_etb, ''), 'Non spécifié') as etablissement,
+            COALESCE(NULLIF(l_cip13, ''), 'Non spécifié') as medicament
+        FROM `{project_id}.dataset.PHMEV2024`
+        WHERE {where_clause}
         """
         
-        result = conn.execute(query, params).fetchdf()
-        return result
+        df = client.query(query).to_dataframe()
+        
+        options = {}
+        if 'atc2' in df.columns:
+            options['atc2'] = sorted([(row['atc2'], row['L_ATC2']) for _, row in df[['atc2', 'L_ATC2']].dropna().drop_duplicates().iterrows()])
+        if 'atc3' in df.columns:
+            options['atc3'] = sorted([(row['atc3'], row['L_ATC3']) for _, row in df[['atc3', 'L_ATC3']].dropna().drop_duplicates().iterrows()])
+        if 'atc4' in df.columns:
+            options['atc4'] = sorted([(row['atc4'], row['L_ATC4']) for _, row in df[['atc4', 'L_ATC4']].dropna().drop_duplicates().iterrows()])
+        if 'ATC5' in df.columns:
+            options['atc5'] = sorted([(row['ATC5'], row['L_ATC5']) for _, row in df[['ATC5', 'L_ATC5']].dropna().drop_duplicates().iterrows()])
+        
+        options['villes'] = sorted(df['ville'].dropna().unique().tolist())
+        options['categories'] = sorted(df['categorie'].dropna().unique().tolist())
+        options['etablissements'] = sorted(df['etablissement'].dropna().unique().tolist())
+        options['medicaments'] = sorted(df['medicament'].dropna().unique().tolist())
+        
+        return options
         
     except Exception as e:
-        st.error(f"Erreur lors du filtrage: {e}")
-        return pd.DataFrame()
+        st.error(f"❌ Erreur filtres dynamiques: {e}")
+        return {}
 
-def search_medications_duckdb(conn, search_term, max_results=50):
-    """🔍 Recherche de médicaments avec DuckDB"""
-    if conn is None or not search_term:
-        return []
+def build_where_clause(filters):
+    """Construit la clause WHERE dynamique"""
+    where_conditions = [
+        "l_cip13 NOT IN ('Non restitué', 'Non spécifié', 'Honoraires de dispensation')",
+        "l_cip13 IS NOT NULL"
+    ]
+    
+    # Filtres ATC hiérarchiques
+    for level in ['atc1', 'atc2', 'atc3', 'atc4']:
+        if filters.get(level):
+            level_list = "', '".join(filters[level])
+            where_conditions.append(f"{level} IN ('{level_list}')")
+    
+    if filters.get('atc5'):
+        atc5_list = "', '".join(filters['atc5'])
+        where_conditions.append(f"ATC5 IN ('{atc5_list}')")
+    
+    # Autres filtres
+    if filters.get('villes'):
+        villes_list = "', '".join(filters['villes'])
+        where_conditions.append(f"COALESCE(NULLIF(nom_ville, ''), 'Non spécifiée') IN ('{villes_list}')")
+    
+    if filters.get('categories'):
+        cat_list = "', '".join(filters['categories'])
+        where_conditions.append(f"COALESCE(NULLIF(categorie_jur, ''), 'Non spécifiée') IN ('{cat_list}')")
+    
+    if filters.get('etablissements'):
+        etab_list = "', '".join(filters['etablissements'])
+        where_conditions.append(f"COALESCE(NULLIF(nom_etb, ''), NULLIF(raison_sociale_etb, ''), 'Non spécifié') IN ('{etab_list}')")
+    
+    if filters.get('medicaments'):
+        med_list = "', '".join(filters['medicaments'])
+        where_conditions.append(f"COALESCE(NULLIF(l_cip13, ''), 'Non spécifié') IN ('{med_list}')")
+    
+    if filters.get('min_boites', 0) > 0:
+        where_conditions.append(f"BOITES >= {filters['min_boites']}")
+    
+    return " AND ".join(where_conditions)
+
+def get_kpis(filters):
+    """Récupère les KPIs depuis BigQuery"""
+    client, project_id = init_bigquery()
+    if not client:
+        return {}
     
     try:
-        # Recherche insensible à la casse avec LIKE
-        search_pattern = f"%{search_term.lower()}%"
-        
-        query = """
-            SELECT DISTINCT libelle_cip
-            FROM phmev
-            WHERE LOWER(libelle_cip) LIKE ?
-            AND libelle_cip IS NOT NULL 
-            AND libelle_cip != 'Non spécifié'
-            ORDER BY 
-                CASE WHEN LOWER(libelle_cip) LIKE ? THEN 1 ELSE 2 END,
-                LENGTH(libelle_cip),
-                libelle_cip
-            LIMIT ?
+        where_clause = build_where_clause(filters)
+        query = f"""
+        SELECT 
+            COUNT(*) as total_lignes,
+            SUM(REM) as total_rem,
+            SUM(BSE) as total_bse,
+            SUM(BOITES) as total_boites,
+            COUNT(DISTINCT COALESCE(NULLIF(nom_etb, ''), NULLIF(raison_sociale_etb, ''), 'Non spécifié')) as nb_etablissements,
+            COUNT(DISTINCT COALESCE(NULLIF(l_cip13, ''), 'Non spécifié')) as nb_medicaments,
+            COUNT(DISTINCT COALESCE(NULLIF(nom_ville, ''), 'Non spécifiée')) as nb_villes
+        FROM `{project_id}.dataset.PHMEV2024`
+        WHERE {where_clause}
         """
         
-        exact_pattern = f"{search_term.lower()}%"
-        result = conn.execute(query, [search_pattern, exact_pattern, max_results]).fetchall()
+        result = client.query(query).to_dataframe()
+        return result.iloc[0].to_dict() if len(result) > 0 else {}
+    except Exception as e:
+        st.error(f"❌ Erreur KPIs: {e}")
+        return {}
+
+def get_top_data(table_type, filters, limit=50):
+    """Récupère le TOP N pour un type de tableau"""
+    client, project_id = init_bigquery()
+    if not client:
+        return pd.DataFrame()
+    
+    try:
+        where_clause = build_where_clause(filters)
         
-        return [row[0] for row in result]
+        if table_type == "etablissements":
+            query = f"""
+            SELECT 
+                COALESCE(NULLIF(nom_etb, ''), NULLIF(raison_sociale_etb, ''), 'Non spécifié') as etablissement,
+                COALESCE(NULLIF(nom_ville, ''), 'Non spécifiée') as ville,
+                COALESCE(NULLIF(categorie_jur, ''), 'Non spécifiée') as categorie,
+                SUM(REM) as REM,
+                SUM(BSE) as BSE,
+                SUM(BOITES) as BOITES,
+                SUM(REM) / SUM(BOITES) as cout_par_boite,
+                (SUM(REM) / SUM(BSE)) * 100 as taux_remboursement
+            FROM `{project_id}.dataset.PHMEV2024`
+            WHERE {where_clause}
+            GROUP BY etablissement, ville, categorie
+            ORDER BY REM DESC
+            LIMIT {limit}
+            """
+        
+        elif table_type == "medicaments":
+            query = f"""
+            SELECT 
+                COALESCE(NULLIF(l_cip13, ''), 'Non spécifié') as medicament,
+                atc1, l_atc1,
+                SUM(REM) as REM,
+                SUM(BSE) as BSE,
+                SUM(BOITES) as BOITES,
+                COUNT(DISTINCT COALESCE(NULLIF(nom_etb, ''), NULLIF(raison_sociale_etb, ''), 'Non spécifié')) as nb_etablissements,
+                SUM(REM) / SUM(BOITES) as cout_par_boite,
+                (SUM(REM) / SUM(BSE)) * 100 as taux_remboursement
+            FROM `{project_id}.dataset.PHMEV2024`
+            WHERE {where_clause}
+            GROUP BY medicament, atc1, l_atc1
+            ORDER BY REM DESC
+            LIMIT {limit}
+            """
+        
+        elif table_type == "molecules":
+            query = f"""
+            SELECT 
+                COALESCE(NULLIF(L_ATC5, ''), 'Non spécifié') as molecule,
+                atc1, l_atc1,
+                SUM(REM) as REM,
+                SUM(BSE) as BSE,
+                SUM(BOITES) as BOITES,
+                COUNT(DISTINCT COALESCE(NULLIF(nom_etb, ''), NULLIF(raison_sociale_etb, ''), 'Non spécifié')) as nb_etablissements,
+                SUM(REM) / SUM(BOITES) as cout_par_boite,
+                (SUM(REM) / SUM(BSE)) * 100 as taux_remboursement
+            FROM `{project_id}.dataset.PHMEV2024`
+            WHERE {where_clause}
+            GROUP BY molecule, atc1, l_atc1
+            ORDER BY REM DESC
+            LIMIT {limit}
+            """
+        
+        return client.query(query).to_dataframe()
         
     except Exception as e:
-        st.error(f"Erreur lors de la recherche: {e}")
-        return []
+        st.error(f"❌ Erreur {table_type}: {e}")
+        return pd.DataFrame()
 
 def main():
-    """🎯 Application principale"""
-    
-    # Header
+    # En-tête
     st.markdown("""
-    <div style="text-align: center; padding: 2rem 0;">
-        <h1 style="color: #667eea; font-size: 3rem; margin-bottom: 0.5rem;">
-            🏥 PHMEV Analytics Pro
-        </h1>
-        <h3 style="color: #764ba2; font-weight: 300; margin-bottom: 2rem;">
-            📊 Version DuckDB - Optimisée Mémoire
-        </h3>
+    <div class="main-header">
+        <h1>🏥 PHMEV Analytics Pro</h1>
+        <p>Analyse pharmaceutique avec BigQuery - Performance maximale</p>
+        <p><small>⚡ Filtres hiérarchiques + TOP N optimisé</small></p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Chargement des données
-    with st.spinner("🦆 Initialisation DuckDB..."):
-        conn = load_data_duckdb()
+    # Initialiser les filtres dans session_state
+    if 'filters' not in st.session_state:
+        st.session_state.filters = {}
     
-    if conn is None:
-        st.stop()
+    # Chargement des options de base
+    with st.spinner("🚀 Chargement des options de filtres..."):
+        base_options = get_base_filter_options()
     
-    # 🎛️ Sidebar ultra moderne avec filtres interdépendants complets
-    with st.sidebar:
-        st.markdown("## ⚡ **Filtres Interdépendants**")
-        st.markdown("*Chaque sélection met à jour les autres filtres automatiquement*")
-        
-        # Initialiser les filtres actuels
-        current_filters = {}
-        
-        # ========== HIÉRARCHIE PHARMACEUTIQUE D'ABORD ==========
-        st.markdown("### 💊 **Hiérarchie Pharmaceutique (QUOI)**")
-        st.markdown("*Sélectionnez d'abord les médicaments qui vous intéressent*")
-        
-        # Niveau 1: ATC1
-        st.markdown("#### 🧬 **Systèmes Anatomiques (ATC1)**")
-        atc1_options = get_filter_options_duckdb(conn, 'atc1', current_filters)
-        atc1_display = [f"{code} - {libelle}" for code, libelle in atc1_options]
-        
-        atc1_selection = st.multiselect(
-            f"Systèmes anatomiques ({len(atc1_options)} disponibles)",
-            options=atc1_display,
-            default=[],
-            key="atc1_multiselect_interdep"
+    if not base_options:
+        st.error("❌ Impossible de charger les options")
+        return
+    
+    # Sidebar - Filtres hiérarchiques avec mise à jour automatique
+    st.sidebar.header("🎛️ Filtres Hiérarchiques ⚡")
+    st.sidebar.caption("🔄 Mise à jour automatique activée")
+    
+    filters = {}
+    
+    # Classification ATC hiérarchique
+    st.sidebar.subheader("🧬 Classification Thérapeutique")
+    
+    # ATC1 (toujours disponible)
+    atc1_options = base_options.get('atc1', [])
+    filters['atc1'] = st.sidebar.multiselect(
+        "ATC Niveau 1", 
+        options=[code for code, label in atc1_options],
+        format_func=lambda x: f"{x} - {dict(atc1_options).get(x, x)}",
+        key="atc1_filter"
+    )
+    
+    # Obtenir les options filtrées si des filtres sont appliqués
+    if any(filters.values()):
+        with st.spinner("⚡ Mise à jour des filtres..."):
+            filtered_options = get_filtered_options(filters)
+    else:
+        filtered_options = base_options
+    
+    # ATC2 (conditionnel et dynamique)
+    if filters['atc1']:
+        atc2_options = filtered_options.get('atc2', [])
+        filters['atc2'] = st.sidebar.multiselect(
+            "ATC Niveau 2", 
+            options=[code for code, label in atc2_options],
+            format_func=lambda x: f"{x} - {dict(atc2_options).get(x, x)}",
+            key="atc2_filter"
         )
-        
-        atc1_codes = [sel.split(' - ')[0] for sel in atc1_selection] if atc1_selection else []
-        atc1_filtre = [dict(atc1_options)[code] for code in atc1_codes] if atc1_codes else []
-        current_filters['atc1_filtre'] = atc1_filtre
-        
-        # Niveau 2: ATC2 (Groupes thérapeutiques)
-        st.markdown("#### 💉 **Groupes Thérapeutiques (ATC2)**")
-        atc2_options = get_filter_options_duckdb(conn, 'atc2', current_filters)
-        atc2_display = [f"{code} - {libelle}" for code, libelle in atc2_options]
-        
-        if atc2_options:
-            atc2_selection = st.multiselect(
-                f"Groupes thérapeutiques ({len(atc2_options)} disponibles)",
-                options=atc2_display,
-                default=[],
-                key="atc2_multiselect_interdep"
-            )
-            
-            atc2_codes = [sel.split(' - ')[0] for sel in atc2_selection] if atc2_selection else []
-            atc2_filtre = [dict(atc2_options)[code] for code in atc2_codes] if atc2_codes else []
-        else:
-            atc2_filtre = []
-            st.info("👆 Sélectionnez d'abord des filtres pour voir les groupes thérapeutiques")
-        
-        current_filters['atc2_filtre'] = atc2_filtre
-        
-        # Niveau 3: ATC3 (Sous-groupes pharmacologiques)
-        st.markdown("#### 🔬 **Sous-groupes Pharmacologiques (ATC3)**")
-        atc3_options = get_filter_options_duckdb(conn, 'atc3', current_filters)
-        atc3_display = [f"{code} - {libelle}" for code, libelle in atc3_options]
-        
-        if atc3_options:
-            atc3_selection = st.multiselect(
-                f"Sous-groupes pharmacologiques ({len(atc3_options)} disponibles)",
-                options=atc3_display,
-                default=[],
-                key="atc3_multiselect_interdep"
-            )
-            
-            atc3_codes = [sel.split(' - ')[0] for sel in atc3_selection] if atc3_selection else []
-            atc3_filtre = [dict(atc3_options)[code] for code in atc3_codes] if atc3_codes else []
-        else:
-            atc3_filtre = []
-            if current_filters.get('atc2_filtre'):
-                st.info("👆 Affinez vos sélections pour voir les sous-groupes")
-        
-        current_filters['atc3_filtre'] = atc3_filtre
-        
-        # Niveau 4: ATC4 (Groupes chimiques)
-        st.markdown("#### ⚗️ **Groupes Chimiques (ATC4)**")
-        atc4_options = get_filter_options_duckdb(conn, 'atc4', current_filters)
-        atc4_display = [f"{code} - {libelle}" for code, libelle in atc4_options]
-        
-        if atc4_options:
-            atc4_selection = st.multiselect(
-                f"Groupes chimiques ({len(atc4_options)} disponibles)",
-                options=atc4_display,
-                default=[],
-                key="atc4_multiselect_interdep"
-            )
-            
-            atc4_codes = [sel.split(' - ')[0] for sel in atc4_selection] if atc4_selection else []
-            atc4_filtre = [dict(atc4_options)[code] for code in atc4_codes] if atc4_codes else []
-        else:
-            atc4_filtre = []
-        
-        current_filters['atc4_filtre'] = atc4_filtre
-        
-        # Niveau 5: ATC5 (Substances chimiques)
-        st.markdown("#### 🧪 **Substances Chimiques (ATC5)**")
-        atc5_options = get_filter_options_duckdb(conn, 'atc5', current_filters)
-        atc5_display = [f"{code} - {libelle}" for code, libelle in atc5_options]
-        
-        if atc5_options:
-            atc5_selection = st.multiselect(
-                f"Substances chimiques ({len(atc5_options)} disponibles)",
-                options=atc5_display,
-                default=[],
-                key="atc5_multiselect_interdep"
-            )
-            
-            atc5_codes = [sel.split(' - ')[0] for sel in atc5_selection] if atc5_selection else []
-            atc5_filtre = [dict(atc5_options)[code] for code in atc5_codes] if atc5_codes else []
-        else:
-            atc5_filtre = []
-        
-        current_filters['atc5_filtre'] = atc5_filtre
-        
-        # Médicaments spécifiques
-        st.markdown("#### 💊 **Médicaments Spécifiques**")
-        medicaments_disponibles = get_filter_options_duckdb(conn, 'medicaments', current_filters)
-        
-        libelle_search = st.text_input(
-            "🔍 Rechercher un médicament",
-            placeholder="Ex: cabometyx, doliprane, ventoline...",
-            key="libelle_search_interdep"
+    else:
+        filters['atc2'] = []
+        st.sidebar.multiselect("ATC Niveau 2", [], disabled=True, help="Sélectionnez d'abord ATC Niveau 1")
+    
+    # Mise à jour des options si ATC2 sélectionné
+    if filters.get('atc2'):
+        with st.spinner("⚡ Mise à jour..."):
+            filtered_options = get_filtered_options(filters)
+    
+    # ATC3 (conditionnel et dynamique)
+    if filters.get('atc2'):
+        atc3_options = filtered_options.get('atc3', [])
+        filters['atc3'] = st.sidebar.multiselect(
+            "ATC Niveau 3", 
+            options=[code for code, label in atc3_options],
+            format_func=lambda x: f"{x} - {dict(atc3_options).get(x, x)}",
+            key="atc3_filter"
         )
-        
-        if libelle_search:
-            medicaments_filtered = [m for m in medicaments_disponibles if libelle_search.lower() in m.lower()][:50]
-        else:
-            medicaments_filtered = medicaments_disponibles[:50]
-        
-        if medicaments_filtered:
-            libelle_filtre = st.multiselect(
-                f"Médicaments ({len(medicaments_disponibles)} disponibles)",
-                options=medicaments_filtered,
-                default=[],
-                key="libelle_multiselect_interdep"
-            )
-        else:
-            libelle_filtre = []
-            st.info("👆 Aucun médicament disponible pour cette sélection")
-        
-        current_filters['libelle_filtre'] = libelle_filtre
-        
-        st.markdown("---")
-        
-        # ========== FILTRES GÉOGRAPHIQUES (OÙ) ==========
-        st.markdown("### 🌍 **Localisation Géographique (OÙ)**")
-        st.markdown("*Filtrez par localisation selon les médicaments sélectionnés*")
-        
-        # Villes (filtrées selon les médicaments sélectionnés)
-        st.markdown("#### 🏙️ **Villes**")
-        villes_disponibles = get_filter_options_duckdb(conn, 'villes', current_filters)
-        
-        ville_search = st.text_input(
-            "🔍 Rechercher une ville",
-            placeholder="Tapez pour filtrer les villes...",
-            key="ville_search_interdep"
+    else:
+        filters['atc3'] = []
+        st.sidebar.multiselect("ATC Niveau 3", [], disabled=True, help="Sélectionnez d'abord ATC Niveau 2")
+    
+    # Mise à jour des options si ATC3 sélectionné
+    if filters.get('atc3'):
+        with st.spinner("⚡ Mise à jour..."):
+            filtered_options = get_filtered_options(filters)
+    
+    # ATC4 (conditionnel et dynamique)
+    if filters.get('atc3'):
+        atc4_options = filtered_options.get('atc4', [])
+        filters['atc4'] = st.sidebar.multiselect(
+            "ATC Niveau 4", 
+            options=[code for code, label in atc4_options],
+            format_func=lambda x: f"{x} - {dict(atc4_options).get(x, x)}",
+            key="atc4_filter"
         )
-        
-        if ville_search:
-            villes_filtered = [v for v in villes_disponibles if ville_search.lower() in v.lower()][:50]
-        else:
-            villes_filtered = villes_disponibles[:50]
-        
-        ville_filtre = st.multiselect(
-            f"Sélectionner les villes ({len(villes_disponibles)} disponibles)",
-            options=villes_filtered,
-            default=[],
-            key="ville_multiselect_interdep"
+    else:
+        filters['atc4'] = []
+        st.sidebar.multiselect("ATC Niveau 4", [], disabled=True, help="Sélectionnez d'abord ATC Niveau 3")
+    
+    # Mise à jour des options si ATC4 sélectionné
+    if filters.get('atc4'):
+        with st.spinner("⚡ Mise à jour..."):
+            filtered_options = get_filtered_options(filters)
+    
+    # ATC5 (conditionnel et dynamique)
+    if filters.get('atc4'):
+        atc5_options = filtered_options.get('atc5', [])
+        filters['atc5'] = st.sidebar.multiselect(
+            "ATC Niveau 5", 
+            options=[code for code, label in atc5_options],
+            format_func=lambda x: f"{x} - {dict(atc5_options).get(x, x)}",
+            key="atc5_filter"
         )
-        current_filters['ville_filtre'] = ville_filtre
-        
-        st.markdown("---")
-        
-        # ========== FILTRES ORGANISATIONNELS (QUI) ==========
-        st.markdown("### 🏥 **Établissements de Santé (QUI)**")
-        st.markdown("*Filtrez par établissement selon médicaments et villes sélectionnés*")
-        
-        # Catégories d'établissements
-        st.markdown("#### 🏛️ **Types d'Établissements**")
-        categories_disponibles = get_filter_options_duckdb(conn, 'categories', current_filters)
-        
-        categorie_filtre = st.multiselect(
-            f"Types d'établissement ({len(categories_disponibles)} disponibles)",
-            options=categories_disponibles,
-            default=[],
-            key="categorie_multiselect_interdep"
-        )
-        current_filters['categorie_filtre'] = categorie_filtre
-        
-        # Établissements spécifiques
-        st.markdown("#### 🏥 **Établissements Spécifiques**")
-        etablissements_disponibles = get_filter_options_duckdb(conn, 'etablissements', current_filters)
-        
-        etablissement_search = st.text_input(
-            "🔍 Rechercher un établissement",
-            placeholder="Tapez pour filtrer les établissements...",
-            key="etablissement_search_interdep"
-        )
-        
-        if etablissement_search:
-            etablissements_filtered = [e for e in etablissements_disponibles if etablissement_search.lower() in e.lower()][:50]
-        else:
-            etablissements_filtered = etablissements_disponibles[:50]
-        
-        etablissement_filtre = st.multiselect(
-            f"Sélectionner les établissements ({len(etablissements_disponibles)} disponibles)",
-            options=etablissements_filtered,
-            default=[],
-            key="etablissement_multiselect_interdep"
-        )
-        current_filters['etablissement_filtre'] = etablissement_filtre
-        
-        st.markdown("---")
-        
-        # ========== PARAMÈTRES D'ANALYSE ==========
-        st.markdown("### 📊 **Paramètres d'analyse**")
-        top_n = st.slider(
-            "🏆 Top N éléments",
-            min_value=5,
-            max_value=100,
-            value=20,
-            step=5,
-            help="Nombre d'éléments dans chaque classement"
-        )
-        
-        # Filtres avancés
-        with st.expander("⚙️ **Filtres Avancés**"):
-            min_boites = st.number_input(
-                "📦 Minimum de boîtes",
-                min_value=0,
-                value=0,
-                help="Seuil minimum de boîtes délivrées"
-            )
-            
-            show_percentages = st.checkbox(
-                "📈 Afficher les pourcentages",
-                value=True,
-                help="Inclure les pourcentages dans les tableaux"
-            )
-            
-            show_charts = st.checkbox(
-                "📊 Afficher les graphiques",
-                value=True,
-                help="Inclure les graphiques dans les analyses"
-            )
+    else:
+        filters['atc5'] = []
+        st.sidebar.multiselect("ATC Niveau 5", [], disabled=True, help="Sélectionnez d'abord ATC Niveau 4")
     
-    # 🔧 Application des filtres interdépendants
-    with st.spinner("🔄 Application des filtres..."):
-        df_filtered = get_filtered_data_duckdb(conn, current_filters, min_boites)
+    # Autres filtres dynamiques
+    st.sidebar.subheader("🏥 Filtres Géographiques & Organisationnels")
     
-    # 📊 Indicateur de filtrage actif
-    filters_active = []
-    if current_filters.get('ville_filtre'): filters_active.append(f"Villes: {len(current_filters['ville_filtre'])}")
-    if current_filters.get('categorie_filtre'): filters_active.append(f"Catégories: {len(current_filters['categorie_filtre'])}")
-    if current_filters.get('etablissement_filtre'): filters_active.append(f"Établissements: {len(current_filters['etablissement_filtre'])}")
-    if current_filters.get('atc1_filtre'): filters_active.append(f"ATC1: {len(current_filters['atc1_filtre'])}")
-    if current_filters.get('atc2_filtre'): filters_active.append(f"ATC2: {len(current_filters['atc2_filtre'])}")
-    if current_filters.get('atc3_filtre'): filters_active.append(f"ATC3: {len(current_filters['atc3_filtre'])}")
-    if current_filters.get('atc4_filtre'): filters_active.append(f"ATC4: {len(current_filters['atc4_filtre'])}")
-    if current_filters.get('atc5_filtre'): filters_active.append(f"ATC5: {len(current_filters['atc5_filtre'])}")
-    if current_filters.get('libelle_filtre'): filters_active.append(f"Médicaments: {len(current_filters['libelle_filtre'])}")
+    # Utiliser les options filtrées pour les autres filtres aussi
+    current_options = filtered_options if any(filters.values()) else base_options
     
-    # Informations sur le dataset
-    total_rows = conn.execute("SELECT COUNT(*) FROM phmev").fetchone()[0]
+    filters['villes'] = st.sidebar.multiselect(
+        "🏙️ Villes", 
+        options=current_options.get('villes', []),
+        key="villes_filter"
+    )
     
-    st.markdown(f"""
-    <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); 
-                padding: 1.5rem; border-radius: 15px; text-align: center; 
-                margin-bottom: 2rem; backdrop-filter: blur(10px);
-                border: 1px solid rgba(102, 126, 234, 0.2);">
-        <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
-            <div style="display: flex; align-items: center; gap: 0.8rem;">
-                <span style="font-size: 2rem;">📅</span>
-                <div>
-                    <div style="font-weight: 700; color: white; font-size: 1.3rem;">
-                        2024
-                    </div>
-                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">
-                        Année étudiée
-                    </div>
-                </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.8rem;">
-                <span style="font-size: 2rem;">🏛️</span>
-                <div>
-                    <div style="font-weight: 700; color: white; font-size: 1.3rem;">
-                        CNAM Open Data
-                    </div>
-                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">
-                        Source officielle
-                    </div>
-                </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.8rem;">
-                <span style="font-size: 2rem;">🦆</span>
-                <div>
-                    <div style="font-weight: 700; color: white; font-size: 1.3rem;">
-                        DuckDB Engine
-                    </div>
-                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">
-                        Optimisé mémoire
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    filters['categories'] = st.sidebar.multiselect(
+        "🏥 Catégories", 
+        options=current_options.get('categories', []),
+        key="categories_filter"
+    )
     
-    # Affichage des filtres actifs seulement s'il y en a
-    if filters_active:
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                    color: white; padding: 1.5rem; border-radius: 15px; 
-                    margin: 1rem 0; box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-                    border: 2px solid rgba(255,255,255,0.2);">
-            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                <span style="font-size: 2rem;">🎯</span>
-                <div>
-                    <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700;">FILTRES ACTIFS</h3>
-                    <div style="font-size: 1rem; opacity: 0.9; margin-top: 0.3rem;">
-                        {" | ".join(filters_active)}
-                    </div>
-                </div>
-            </div>
-            <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="font-size: 1.5rem;">📊</span>
-                        <div>
-                            <div style="font-size: 1.8rem; font-weight: 700;">
-                                {len(df_filtered):,}
-                            </div>
-                            <div style="font-size: 0.9rem; opacity: 0.8;">
-                                Lignes filtrées
-                            </div>
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="font-size: 1.5rem;">📈</span>
-                        <div>
-                            <div style="font-size: 1.8rem; font-weight: 700;">
-                                {len(df_filtered)/total_rows*100:.1f}%
-                            </div>
-                            <div style="font-size: 0.9rem; opacity: 0.8;">
-                                du dataset total
-                            </div>
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="font-size: 1.5rem;">🗂️</span>
-                        <div>
-                            <div style="font-size: 1.8rem; font-weight: 700;">
-                                {total_rows:,} lignes
-                            </div>
-                            <div style="font-size: 0.9rem; opacity: 0.8;">
-                                Dataset analysé
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    filters['etablissements'] = st.sidebar.multiselect(
+        "🏢 Établissements", 
+        options=current_options.get('etablissements', []),
+        key="etablissements_filter"
+    )
     
-    if df_filtered.empty:
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-                    color: white; padding: 1.5rem; border-radius: 15px; text-align: center;
-                    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3); margin: 1rem 0;">
-            <strong>⚠️ Aucune donnée trouvée</strong><br>
-            Essayez de modifier vos filtres pour obtenir des résultats
-        </div>
-        """, unsafe_allow_html=True)
-        st.stop()
+    # Recherche médicament dynamique
+    st.sidebar.subheader("💊 Recherche de Médicaments")
+    search_term = st.sidebar.text_input(
+        "🔍 Rechercher", 
+        placeholder="Ex: cabometyx, keytruda...",
+        key="med_search"
+    )
     
-    # KPIs globaux filtrés
-    st.markdown('## 💎 Métriques Filtrées')
+    # Mapping des noms commerciaux (maintenant on cherche directement dans l_cip13)
+    drug_aliases = {
+        'cabome': 'cabometyx',
+        'keytr': 'keytruda', 
+        'opdi': 'opdivo',
+        'tecfi': 'tecfidera',
+        'humi': 'humira',
+        'avast': 'avastin',
+        'hercep': 'herceptin'
+    }
     
-    total_boites = df_filtered['BOITES'].sum()
-    total_rem = df_filtered['REM'].sum()
-    total_bse = df_filtered['BSE'].sum()
-    nb_etablissements = df_filtered['etablissement'].nunique()
+    # Utiliser les médicaments filtrés selon les autres critères
+    med_options = current_options.get('medicaments', [])
     
-    col1, col2, col3, col4 = st.columns(4)
+    if search_term:
+        search_lower = search_term.lower().strip()
+        # Recherche directe dans les noms commerciaux
+        direct_matches = [med for med in med_options if search_lower in med.lower()]
+        
+        # Recherche via alias (pour les abréviations)
+        alias_matches = []
+        for alias, full_name in drug_aliases.items():
+            if search_lower.startswith(alias):
+                alias_matches.extend([med for med in med_options if full_name.lower() in med.lower()])
+        
+        # Combiner les résultats (sans doublons)
+        med_options = list(set(direct_matches + alias_matches))
+        med_options.sort()
     
+    filters['medicaments'] = st.sidebar.multiselect(
+        "💊 Médicaments", 
+        options=med_options,
+        key="medicaments_filter",
+        help=f"{'❌ Aucun médicament trouvé pour \"' + search_term + '\"' if search_term and not med_options else f'✅ {len(med_options)} médicaments disponibles (filtrés automatiquement)'}"
+    )
+    
+    filters['min_boites'] = st.sidebar.number_input(
+        "📦 Nombre minimum de boîtes", 
+        min_value=0, 
+        value=0,
+        key="min_boites_filter"
+    )
+    
+    # Indicateur de filtres actifs
+    active_filters = sum(1 for v in filters.values() if v)
+    if active_filters > 0:
+        st.sidebar.success(f"🎯 {active_filters} filtre(s) actif(s)")
+    
+    # Boutons d'action
+    col1, col2, col3 = st.sidebar.columns(3)
     with col1:
-        st.markdown(f"""
-        <div class="kpi-card boxes">
-            <div class="kpi-icon">📦</div>
-            <div class="kpi-value">{format_number(total_boites)}</div>
-            <div class="kpi-label">Total Boîtes</div>
-            <div class="kpi-delta">Boîtes délivrées</div>
-        </div>
-        """, unsafe_allow_html=True)
+        if st.button("🔄 Reset", use_container_width=True):
+            # Clear all session state keys for filters
+            for key in list(st.session_state.keys()):
+                if key.endswith('_filter') or key == 'med_search':
+                    del st.session_state[key]
+            st.rerun()
     
     with col2:
-        st.markdown(f"""
-        <div class="kpi-card money">
-            <div class="kpi-icon">💰</div>
-            <div class="kpi-value">{format_currency(total_rem)}</div>
-            <div class="kpi-label">Montant Remboursé</div>
-            <div class="kpi-delta">Par l'Assurance Maladie</div>
-        </div>
-        """, unsafe_allow_html=True)
+        if st.button("⚡ Actualiser", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
     
     with col3:
-        st.markdown(f"""
-        <div class="kpi-card count">
-            <div class="kpi-icon">🏥</div>
-            <div class="kpi-value">{format_number(nb_etablissements)}</div>
-            <div class="kpi-label">Établissements</div>
-            <div class="kpi-delta">Établissements uniques</div>
-        </div>
-        """, unsafe_allow_html=True)
+        if st.button("🔧 Cache", use_container_width=True, help="Régénérer le cache des filtres"):
+            with st.spinner("Régénération du cache..."):
+                import subprocess
+                try:
+                    result = subprocess.run(['python', 'generate_filter_cache.py'], 
+                                          capture_output=True, text=True, timeout=120)
+                    if result.returncode == 0:
+                        st.success("✅ Cache régénéré !")
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Erreur: {result.stderr}")
+                except Exception as e:
+                    st.error(f"❌ Erreur: {e}")
     
-    with col4:
-        cout_moyen = total_rem / total_boites if total_boites > 0 else 0
-        st.markdown(f"""
-        <div class="kpi-card base">
-            <div class="kpi-icon">💊</div>
-            <div class="kpi-value">{format_currency(cout_moyen)}</div>
-            <div class="kpi-label">Coût Moyen/Boîte</div>
-            <div class="kpi-delta">Par boîte délivrée</div>
-        </div>
-        """, unsafe_allow_html=True)
+    # KPIs
+    with st.spinner("📊 Calcul des KPIs..."):
+        kpis = get_kpis(filters)
     
-    # Les 3 tableaux principaux avec filtres
-    st.markdown('## 📊 Analyses Principales')
+    if kpis:
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.markdown(f"""
+            <div class="kpi-container">
+                <div class="kpi-value">{format_currency(kpis.get('total_rem', 0))}</div>
+                <div class="kpi-label">💰 Montant Total Remboursé</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown(f"""
+            <div class="kpi-container">
+                <div class="kpi-value">{format_number(kpis.get('total_boites', 0))}</div>
+                <div class="kpi-label">📦 Boîtes Totales</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            st.markdown(f"""
+            <div class="kpi-container">
+                <div class="kpi-value">{kpis.get('nb_etablissements', 0)}</div>
+                <div class="kpi-label">🏥 Établissements</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col4:
+            st.markdown(f"""
+            <div class="kpi-container">
+                <div class="kpi-value">{kpis.get('nb_medicaments', 0)}</div>
+                <div class="kpi-label">💊 Médicaments</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.info(f"📊 **{kpis.get('total_lignes', 0):,}** lignes trouvées avec les filtres appliqués")
     
-    tab1, tab2, tab3 = st.tabs(["🏥 Top Établissements", "💊 Top Produits", "🧪 Top Molécules"])
+    # Onglets pour les 3 tableaux
+    tab1, tab2, tab3 = st.tabs(["🏥 Top Établissements", "💊 Top Produits", "🧬 Top Molécules"])
     
-    # TAB 1: Top Établissements
     with tab1:
-        st.subheader(f"🏥 Top {top_n} Établissements par Remboursement")
+        st.subheader("🏥 Top Établissements par Remboursement")
         
-        if len(df_filtered) > 0:
-            # Grouper par établissement
-            df_etabs = df_filtered.groupby(['etablissement', 'ville', 'categorie']).agg({
-                'BOITES': 'sum',
-                'REM': 'sum', 
-                'BSE': 'sum'
-            }).reset_index()
+        col_opt1, col_opt2 = st.columns(2)
+        with col_opt1:
+            limit_etabs = st.selectbox("Nombre à afficher", [20, 50, 100], index=1, key="limit_etabs")
+        with col_opt2:
+            show_chart = st.checkbox("📊 Graphique", value=True, key="chart_etabs")
+        
+        with st.spinner("🏥 Chargement TOP établissements..."):
+            df_etabs = get_top_data("etablissements", filters, limit_etabs)
+        
+        if len(df_etabs) > 0:
+            # Formatage
+            df_display = df_etabs.copy()
+            df_display['REM'] = df_display['REM'].apply(lambda x: f"{x:,.2f}€".replace(',', ' ').replace('.', ',').replace(' ', '.'))
+            df_display['BSE'] = df_display['BSE'].apply(lambda x: f"{x:,.2f}€".replace(',', ' ').replace('.', ',').replace(' ', '.'))
+            df_display['cout_par_boite'] = df_display['cout_par_boite'].apply(lambda x: f"{x:,.2f}€".replace(',', ' ').replace('.', ',').replace(' ', '.'))
+            df_display['taux_remboursement'] = df_display['taux_remboursement'].apply(lambda x: f"{x:.1f}%")
+            df_display['BOITES'] = df_display['BOITES'].apply(lambda x: f"{x:,}".replace(',', ' '))
             
-            # Calculer les métriques dérivées
-            df_etabs['cout_moyen_boite'] = np.where(
-                df_etabs['BOITES'] > 0, 
-                df_etabs['REM'] / df_etabs['BOITES'], 
-                0
-            )
-            df_etabs['taux_remb_moyen'] = np.where(
-                df_etabs['BSE'] > 0, 
-                (df_etabs['REM'] / df_etabs['BSE'] * 100), 
-                0
-            )
+            df_display.columns = ['Établissement', 'Ville', 'Catégorie', 'Montant Remboursé', 'Base Remboursable', 'Boîtes', 'Coût/Boîte', 'Taux Remb.']
             
-            df_etabs = df_etabs.nlargest(top_n, 'REM')
+            st.dataframe(df_display, use_container_width=True)
             
-            # Formatage pour affichage
-            df_etabs_display = df_etabs.copy()
-            df_etabs_display['Total Boîtes'] = df_etabs_display['BOITES'].apply(format_number)
-            df_etabs_display['Montant Remboursé'] = df_etabs_display['REM'].apply(format_currency)
-            df_etabs_display['Base Remboursable'] = df_etabs_display['BSE'].apply(format_currency)
-            df_etabs_display['Coût/Boîte'] = df_etabs_display['cout_moyen_boite'].apply(format_currency)
-            df_etabs_display['Taux Remb.'] = df_etabs_display['taux_remb_moyen'].apply(lambda x: f"{x:.1f}%")
-            
-            # Colonnes à afficher
-            cols_display = ['etablissement', 'ville', 'categorie', 'Total Boîtes', 'Montant Remboursé', 'Base Remboursable', 'Coût/Boîte', 'Taux Remb.']
-            st.dataframe(df_etabs_display[cols_display], width='stretch', hide_index=True)
-            
-            # Graphique si activé
-            if show_charts:
-                fig = px.bar(
-                    df_etabs.head(15), 
-                    x='REM', 
-                    y='etablissement',
-                    orientation='h',
-                    title=f"Top 15 Établissements par Remboursement",
-                    labels={'REM': 'Montant Remboursé (€)', 'etablissement': 'Établissement'},
-                    color='REM',
-                    color_continuous_scale='Blues'
-                )
-                fig.update_layout(height=600, yaxis={'categoryorder': 'total ascending'})
+            if show_chart:
+                fig = px.bar(df_etabs.head(15), x='REM', y='etablissement', orientation='h', title="Top 15 Établissements")
+                fig.update_layout(height=500, yaxis={'categoryorder': 'total ascending'})
                 st.plotly_chart(fig, use_container_width=True)
             
-            # Export
-            csv_etabs = df_etabs_display.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Télécharger Top Établissements",
-                data=csv_etabs,
-                file_name=f"top_{top_n}_etablissements_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-                mime="text/csv"
-            )
+            csv = df_display.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Télécharger", csv, f"etablissements_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv")
         else:
-            st.info("Aucun établissement trouvé avec les filtres sélectionnés")
+            st.warning("Aucun établissement trouvé")
     
-    # TAB 2: Top Produits
     with tab2:
-        st.subheader(f"💊 Top {top_n} Produits par Remboursement")
+        st.subheader("💊 Top Produits par Remboursement")
         
-        if len(df_filtered) > 0:
-            # Grouper par produit
-            df_produits = df_filtered.groupby(['libelle_cip', 'L_ATC5']).agg({
-                'BOITES': 'sum',
-                'REM': 'sum', 
-                'BSE': 'sum',
-                'etablissement': 'nunique'
-            }).reset_index()
+        col_opt1, col_opt2 = st.columns(2)
+        with col_opt1:
+            limit_meds = st.selectbox("Nombre à afficher", [20, 50, 100], index=1, key="limit_meds")
+        with col_opt2:
+            show_chart_meds = st.checkbox("📊 Graphique", value=True, key="chart_meds")
+        
+        with st.spinner("💊 Chargement TOP médicaments..."):
+            df_meds = get_top_data("medicaments", filters, limit_meds)
+        
+        if len(df_meds) > 0:
+            # Formatage
+            df_display = df_meds.copy()
+            df_display['REM'] = df_display['REM'].apply(lambda x: f"{x:,.2f}€".replace(',', ' ').replace('.', ',').replace(' ', '.'))
+            df_display['BSE'] = df_display['BSE'].apply(lambda x: f"{x:,.2f}€".replace(',', ' ').replace('.', ',').replace(' ', '.'))
+            df_display['cout_par_boite'] = df_display['cout_par_boite'].apply(lambda x: f"{x:,.2f}€".replace(',', ' ').replace('.', ',').replace(' ', '.'))
+            df_display['taux_remboursement'] = df_display['taux_remboursement'].apply(lambda x: f"{x:.1f}%")
+            df_display['BOITES'] = df_display['BOITES'].apply(lambda x: f"{x:,}".replace(',', ' '))
             
-            df_produits.rename(columns={'libelle_cip': 'produit', 'L_ATC5': 'molecule', 'etablissement': 'nb_etablissements'}, inplace=True)
+            df_display.columns = ['Médicament', 'ATC1', 'Libellé ATC1', 'Montant Remboursé', 'Base Remboursable', 'Boîtes', 'Nb Établissements', 'Coût/Boîte', 'Taux Remb.']
             
-            # Calculer les métriques dérivées
-            df_produits['cout_moyen_boite'] = np.where(
-                df_produits['BOITES'] > 0, 
-                df_produits['REM'] / df_produits['BOITES'], 
-                0
-            )
-            df_produits['taux_remb_moyen'] = np.where(
-                df_produits['BSE'] > 0, 
-                (df_produits['REM'] / df_produits['BSE'] * 100), 
-                0
-            )
+            st.dataframe(df_display, use_container_width=True)
             
-            df_produits = df_produits.nlargest(top_n, 'REM')
-            
-            # Formatage pour affichage
-            df_produits_display = df_produits.copy()
-            df_produits_display['Total Boîtes'] = df_produits_display['BOITES'].apply(format_number)
-            df_produits_display['Montant Remboursé'] = df_produits_display['REM'].apply(format_currency)
-            df_produits_display['Base Remboursable'] = df_produits_display['BSE'].apply(format_currency)
-            df_produits_display['Coût/Boîte'] = df_produits_display['cout_moyen_boite'].apply(format_currency)
-            df_produits_display['Taux Remb.'] = df_produits_display['taux_remb_moyen'].apply(lambda x: f"{x:.1f}%")
-            df_produits_display['Nb Étab.'] = df_produits_display['nb_etablissements'].apply(format_number)
-            
-            # Colonnes à afficher
-            cols_display = ['produit', 'molecule', 'Total Boîtes', 'Montant Remboursé', 'Base Remboursable', 'Coût/Boîte', 'Taux Remb.', 'Nb Étab.']
-            st.dataframe(df_produits_display[cols_display], width='stretch', hide_index=True)
-            
-            # Graphique si activé
-            if show_charts:
-                fig = px.bar(
-                    df_produits.head(15), 
-                    x='REM', 
-                    y='produit',
-                    orientation='h',
-                    title=f"Top 15 Produits par Remboursement",
-                    labels={'REM': 'Montant Remboursé (€)', 'produit': 'Produit'},
-                    color='REM',
-                    color_continuous_scale='Greens'
-                )
-                fig.update_layout(height=600, yaxis={'categoryorder': 'total ascending'})
+            if show_chart_meds:
+                fig = px.bar(df_meds.head(15), x='REM', y='medicament', orientation='h', title="Top 15 Médicaments")
+                fig.update_layout(height=500, yaxis={'categoryorder': 'total ascending'})
                 st.plotly_chart(fig, use_container_width=True)
             
-            # Export
-            csv_produits = df_produits_display.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Télécharger Top Produits",
-                data=csv_produits,
-                file_name=f"top_{top_n}_produits_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-                mime="text/csv"
-            )
+            csv = df_display.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Télécharger", csv, f"medicaments_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv", key="dl_meds")
         else:
-            st.info("Aucun produit trouvé avec les filtres sélectionnés")
+            st.warning("Aucun médicament trouvé")
     
-    # TAB 3: Top Molécules
     with tab3:
-        st.subheader(f"🧪 Top {top_n} Molécules par Remboursement")
+        st.subheader("🧬 Top Molécules par Remboursement")
         
-        if len(df_filtered) > 0:
-            # Grouper par molécule
-            df_molecules = df_filtered.groupby(['L_ATC5', 'l_atc1']).agg({
-                'BOITES': 'sum',
-                'REM': 'sum', 
-                'BSE': 'sum',
-                'libelle_cip': 'nunique',
-                'etablissement': 'nunique'
-            }).reset_index()
+        col_opt1, col_opt2 = st.columns(2)
+        with col_opt1:
+            limit_mols = st.selectbox("Nombre à afficher", [20, 50, 100], index=1, key="limit_mols")
+        with col_opt2:
+            show_chart_mols = st.checkbox("📊 Graphique", value=True, key="chart_mols")
+        
+        with st.spinner("🧬 Chargement TOP molécules..."):
+            df_mols = get_top_data("molecules", filters, limit_mols)
+        
+        if len(df_mols) > 0:
+            # Formatage
+            df_display = df_mols.copy()
+            df_display['REM'] = df_display['REM'].apply(lambda x: f"{x:,.2f}€".replace(',', ' ').replace('.', ',').replace(' ', '.'))
+            df_display['BSE'] = df_display['BSE'].apply(lambda x: f"{x:,.2f}€".replace(',', ' ').replace('.', ',').replace(' ', '.'))
+            df_display['cout_par_boite'] = df_display['cout_par_boite'].apply(lambda x: f"{x:,.2f}€".replace(',', ' ').replace('.', ',').replace(' ', '.'))
+            df_display['taux_remboursement'] = df_display['taux_remboursement'].apply(lambda x: f"{x:.1f}%")
+            df_display['BOITES'] = df_display['BOITES'].apply(lambda x: f"{x:,}".replace(',', ' '))
             
-            df_molecules.rename(columns={
-                'L_ATC5': 'molecule', 
-                'l_atc1': 'systeme_anatomique',
-                'libelle_cip': 'nb_produits',
-                'etablissement': 'nb_etablissements'
-            }, inplace=True)
+            df_display.columns = ['Molécule', 'ATC1', 'Libellé ATC1', 'Montant Remboursé', 'Base Remboursable', 'Boîtes', 'Nb Établissements', 'Coût/Boîte', 'Taux Remb.']
             
-            # Calculer les métriques dérivées
-            df_molecules['cout_moyen_boite'] = np.where(
-                df_molecules['BOITES'] > 0, 
-                df_molecules['REM'] / df_molecules['BOITES'], 
-                0
-            )
-            df_molecules['taux_remb_moyen'] = np.where(
-                df_molecules['BSE'] > 0, 
-                (df_molecules['REM'] / df_molecules['BSE'] * 100), 
-                0
-            )
+            st.dataframe(df_display, use_container_width=True)
             
-            # Filtrer les molécules nulles
-            df_molecules = df_molecules[df_molecules['molecule'].notna() & (df_molecules['molecule'] != '')]
-            df_molecules = df_molecules.nlargest(top_n, 'REM')
-            
-            # Formatage pour affichage
-            df_molecules_display = df_molecules.copy()
-            df_molecules_display['Total Boîtes'] = df_molecules_display['BOITES'].apply(format_number)
-            df_molecules_display['Montant Remboursé'] = df_molecules_display['REM'].apply(format_currency)
-            df_molecules_display['Base Remboursable'] = df_molecules_display['BSE'].apply(format_currency)
-            df_molecules_display['Coût/Boîte'] = df_molecules_display['cout_moyen_boite'].apply(format_currency)
-            df_molecules_display['Taux Remb.'] = df_molecules_display['taux_remb_moyen'].apply(lambda x: f"{x:.1f}%")
-            df_molecules_display['Nb Produits'] = df_molecules_display['nb_produits'].apply(format_number)
-            df_molecules_display['Nb Étab.'] = df_molecules_display['nb_etablissements'].apply(format_number)
-            
-            # Colonnes à afficher
-            cols_display = ['molecule', 'systeme_anatomique', 'Total Boîtes', 'Montant Remboursé', 'Base Remboursable', 'Coût/Boîte', 'Taux Remb.', 'Nb Produits', 'Nb Étab.']
-            st.dataframe(df_molecules_display[cols_display], width='stretch', hide_index=True)
-            
-            # Graphique si activé
-            if show_charts:
-                fig = px.bar(
-                    df_molecules.head(15), 
-                    x='REM', 
-                    y='molecule',
-                    orientation='h',
-                    title=f"Top 15 Molécules par Remboursement",
-                    labels={'REM': 'Montant Remboursé (€)', 'molecule': 'Molécule'},
-                    color='REM',
-                    color_continuous_scale='Reds'
-                )
-                fig.update_layout(height=600, yaxis={'categoryorder': 'total ascending'})
+            if show_chart_mols:
+                fig = px.bar(df_mols.head(15), x='REM', y='molecule', orientation='h', title="Top 15 Molécules")
+                fig.update_layout(height=500, yaxis={'categoryorder': 'total ascending'})
                 st.plotly_chart(fig, use_container_width=True)
             
-            # Export
-            csv_molecules = df_molecules_display.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Télécharger Top Molécules",
-                data=csv_molecules,
-                file_name=f"top_{top_n}_molecules_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-                mime="text/csv"
-            )
+            csv = df_display.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Télécharger", csv, f"molecules_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv", key="dl_mols")
         else:
-            st.info("Aucune molécule trouvée avec les filtres sélectionnés")
+            st.warning("Aucune molécule trouvée")
     
-    # Footer
+    # Footer avec informations de performance
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; color: #666; padding: 1rem;">
-        🦆 <strong>PHMEV Analytics Pro - DuckDB Edition</strong><br>
-        Optimisé pour la performance et la gestion mémoire<br>
-        <em>Données PHMEV • Version {}</em>
+        <p>🏥 <strong>PHMEV Analytics Pro - Version Dynamique</strong></p>
+        <p>⚡ BigQuery + Filtres hiérarchiques dynamiques + Mise à jour automatique</p>
+        <p><small>🚀 Performance optimisée sur 2,5M lignes | 🔄 Filtres en temps réel | 💊 Noms commerciaux</small></p>
+        <p><small>✅ Cabometyx maintenant détectable | 🎯 Filtres intelligents</small></p>
     </div>
-    """.format(datetime.now().strftime("%Y-%m-%d")), unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()

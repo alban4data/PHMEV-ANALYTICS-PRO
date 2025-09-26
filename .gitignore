@@ -39,8 +39,16 @@ ENV/
 .env
 .venv
 
-# Cache Streamlit
-.streamlit/
+# Cache Streamlit (mais garder le dossier pour la config)
+.streamlit/secrets.toml
+
+# Credentials BigQuery (SENSIBLE - NE PAS COMMITER)
+*.json
+!requirements.txt
+
+# Cache des filtres (peut être régénéré)
+filter_options_cache.pkl
+filter_options_cache.json
 
 # Fichiers système
 .DS_Store
