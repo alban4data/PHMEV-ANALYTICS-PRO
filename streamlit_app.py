@@ -582,86 +582,23 @@ def load_data_background(nrows=None):
     import os
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # Priorité 1: Parquet optimisé (optimisé pour Streamlit Cloud)
-    parquet_optimized_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_optimized.parquet')
+    # UNIQUEMENT le fichier sample_10k (contient les 3,504,612 lignes)
     parquet_sample_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_sample_10k.parquet')
-    parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
-    csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
     
-    # FORCER l'utilisation des données d'exemple pour Streamlit Cloud (temporaire pour debug)
-    # Détecter si on est sur Streamlit Cloud (mémoire limitée)
-    is_streamlit_cloud = (
-        os.environ.get('STREAMLIT_CLOUD', False) or 
-        'streamlit.app' in os.environ.get('HOSTNAME', '') or
-        not os.path.exists(parquet_path)  # Si pas de Parquet local, on est probablement sur le cloud
-    )
-    
-    # Priorité 1: Échantillon Parquet (contient les 3M lignes pour Streamlit Cloud)
+    # Utiliser UNIQUEMENT OPEN_PHMEV_2024_sample_10k.parquet
     if os.path.exists(parquet_sample_path):
         try:
             df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
             return df
         except Exception as e:
-            st.warning(f"⚠️ Erreur avec l'échantillon Parquet: {e}")
-    
-    # Priorité 2: Parquet Optimisé (fallback)
-    elif os.path.exists(parquet_optimized_path):
-        try:
-            df = pd.read_parquet(parquet_optimized_path, engine='pyarrow')
-            return df
-        except Exception as e:
-            st.warning(f"⚠️ Erreur avec le fichier optimisé: {e}")
-    
-    # Priorité 2: Parquet complet (en local)
-    elif os.path.exists(parquet_path):
-        st.info("🚀 Chargement ultra-rapide depuis le fichier Parquet complet")
-        try:
-            df = pd.read_parquet(parquet_path, engine='pyarrow')
-            
-            # Vérifier si les colonnes dérivées existent déjà
-            if 'etablissement' not in df.columns:
-                st.info("🔧 Création des colonnes enrichies...")
-                # Création de colonnes enrichies avec gestion sécurisée des NaN
-                df['etablissement'] = df['nom_etb'].astype(str).fillna('Non spécifié')
-                if 'raison_sociale_etb' in df.columns:
-                    df['etablissement'] = df['etablissement'].where(
-                        df['etablissement'] != 'nan', 
-                        df['raison_sociale_etb'].astype(str)
-                    )
-                
-                df['medicament'] = df['L_ATC5'].astype(str).fillna('Non spécifié')
-                df['categorie'] = df['categorie_jur'].astype(str).fillna('Non spécifiée')
-                df['ville'] = df['nom_ville'].astype(str).fillna('Non spécifiée')
-                df['region'] = df['region_etb'].fillna(0)
-                df['code_cip'] = df['CIP13'].astype(str)
-                df['libelle_cip'] = df['l_cip13'].fillna('Non spécifié')
-                
-                # Calculs dérivés
-                df['cout_par_boite'] = np.where(df['BOITES'] > 0, df['REM'] / df['BOITES'], 0)
-                df['taux_remboursement'] = np.where(df['REM'] > 0, (df['BSE'] / df['REM']) * 100, 0)
-            
-            return df
-        except Exception as e:
-            st.warning(f"⚠️ Erreur avec le fichier Parquet complet: {e}")
-    
-    # Priorité 3: CSV si disponible
-    elif os.path.exists(csv_path):
-        st.info("📁 Chargement depuis le fichier CSV")
-    
-    # Fallback final: données d'exemple
-    else:
-        try:
-            from sample_data import create_sample_data
-            st.info("🔄 Utilisation des données d'exemple pour la démonstration...")
-            st.info("💡 Les données d'exemple contiennent 1000 lignes représentatives")
-            return create_sample_data()
-        except ImportError as e:
-            st.error(f"❌ Impossible de charger les données d'exemple: {e}")
+            st.error(f"❌ Erreur avec OPEN_PHMEV_2024_sample_10k.parquet: {e}")
             return None
     
-    # En local, essayer d'abord le format Parquet
-    if os.path.exists(parquet_path):
-        st.info("🚀 Chargement ultra-rapide depuis le fichier Parquet optimisé")
+    # Si le fichier n'existe pas, erreur
+    else:
+        st.error("❌ Fichier OPEN_PHMEV_2024_sample_10k.parquet non trouvé !")
+        st.info("💡 Veuillez vous assurer que le fichier OPEN_PHMEV_2024_sample_10k.parquet est présent dans le répertoire.")
+        return None
         try:
             import pyarrow.parquet as pq
             df = pd.read_parquet(parquet_path, engine='pyarrow')
@@ -702,7 +639,7 @@ def load_data_background(nrows=None):
             st.warning("⚠️ Fichier PHMEV principal non trouvé. Utilisation de données d'exemple pour la démonstration.")
             return create_sample_data()
         except ImportError:
-            st.error("❌ Impossible de charger les données d'exemple. Veuillez ajouter le fichier OPEN_PHMEV_2024.parquet ou .CSV")
+            st.error("❌ Impossible de charger les données. Veuillez ajouter le fichier OPEN_PHMEV_2024_sample_10k.parquet")
             return None
     
     # Types de données optimisés pour économiser la mémoire
@@ -796,52 +733,40 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
         import os
         script_dir = os.path.dirname(os.path.abspath(__file__))
         
-        # Priorité 1: Parquet optimisé (optimisé pour Streamlit Cloud)
-        parquet_optimized_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_optimized.parquet')
+        # UNIQUEMENT le fichier sample_10k (contient les 3,504,612 lignes)
         parquet_sample_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_sample_10k.parquet')
-        parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
-        csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
         
-        # FORCER l'utilisation des données d'exemple pour Streamlit Cloud (temporaire pour debug)
-        # Détecter si on est sur Streamlit Cloud (mémoire limitée)
-        is_streamlit_cloud = (
-            os.environ.get('STREAMLIT_CLOUD', False) or 
-            'streamlit.app' in os.environ.get('HOSTNAME', '') or
-            not os.path.exists(parquet_path)  # Si pas de Parquet local, on est probablement sur le cloud
-        )
-        
-        # Priorité 1: Échantillon Parquet (contient les 3M lignes pour Streamlit Cloud)
+        # Utiliser UNIQUEMENT OPEN_PHMEV_2024_sample_10k.parquet
         if os.path.exists(parquet_sample_path):
-            status_text.text("🚀 Chargement des 3M lignes...")
+            status_text.text("🚀 Chargement des 3,504,612 lignes...")
             progress_bar.progress(70)
             try:
                 df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
                 progress_bar.progress(100)
-                st.session_state.phmev_data_cached = df
-                return df
-            except Exception as e:
-                st.warning(f"⚠️ Erreur avec l'échantillon: {e}")
-        
-        # Priorité 2: Parquet Optimisé (fallback)
-        elif os.path.exists(parquet_optimized_path):
-            status_text.text("🚀 Chargement optimisé...")
-            progress_bar.progress(70)
-            try:
-                df = pd.read_parquet(parquet_optimized_path, engine='pyarrow')
-                progress_bar.progress(100)
-                st.session_state.phmev_data_cached = df
+                status_text.text("✅ Données chargées avec succès !")
                 
-                # Nettoyage rapide
+                # Nettoyage interface
                 import time, gc
                 time.sleep(0.5)
                 progress_bar.empty()
                 status_text.empty()
                 gc.collect()
                 
+                st.session_state.phmev_data_cached = df
                 return df
             except Exception as e:
-                st.warning(f"⚠️ Erreur avec l'échantillon: {e}")
-                progress_bar.progress(10)
+                st.error(f"❌ Erreur avec OPEN_PHMEV_2024_sample_10k.parquet: {e}")
+                progress_bar.empty()
+                status_text.empty()
+                return None
+        
+        # Si le fichier n'existe pas, erreur
+        else:
+            progress_bar.empty()
+            status_text.empty()
+            st.error("❌ Fichier OPEN_PHMEV_2024_sample_10k.parquet non trouvé !")
+            st.info("💡 Veuillez vous assurer que le fichier OPEN_PHMEV_2024_sample_10k.parquet est présent dans le répertoire.")
+            return None
         
         # En local, essayer d'abord le format Parquet
         if os.path.exists(parquet_path):
@@ -899,7 +824,7 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
                 st.session_state.phmev_data_cached = df
                 return df
             except ImportError:
-                st.error("❌ Impossible de charger les données d'exemple. Veuillez ajouter le fichier OPEN_PHMEV_2024.parquet ou .CSV")
+                st.error("❌ Impossible de charger les données. Veuillez ajouter le fichier OPEN_PHMEV_2024_sample_10k.parquet")
                 return None
         
         # Optimisation mémoire maximale (sans category pour éviter les erreurs)
@@ -2013,7 +1938,7 @@ def main():
         - **Lignes totales:** {len(df):,}
         - **Lignes filtrées:** {len(df_filtered):,}
         - **Taux de filtrage:** {(len(df_filtered)/len(df)*100):.1f}%
-        - **Source:** OPEN_PHMEV_2024.CSV
+        - **Source:** OPEN_PHMEV_2024_sample_10k.parquet
         
         ### 🔧 **Colonnes Analysées**
         - **BOITES:** Nombre de boîtes délivrées
