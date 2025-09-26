@@ -15,10 +15,7 @@ st.set_page_config(
 # Fonction pour charger les données depuis Google Drive avec fallback
 @st.cache_data(show_spinner=False)
 def load_phmev_data():
-    """Charge les données PHMEV depuis Google Drive ou utilise les données d'exemple"""
-    
-            # Pas de Google Drive - utilisation des données d'exemple
-            st.info("🔄 Pas de données locales détectées")
+    """Charge les données d'exemple pour la démonstration"""
     
     # Utilisation directe des données d'exemple
     st.info("🔄 Utilisation des données d'exemple pour la démonstration...")
