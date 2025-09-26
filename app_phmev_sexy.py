@@ -468,16 +468,31 @@ def load_data_background(nrows=None):
     """🚀 Charge les données PHMEV en arrière-plan (cache désactivé pour éviter les erreurs mémoire)"""
     import os
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Priorité 1: Parquet (plus rapide)
+    parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
     csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
     
-    # Si le fichier principal n'existe pas, utiliser les données d'exemple
-    if not os.path.exists(csv_path):
+    # Essayer d'abord le format Parquet
+    if os.path.exists(parquet_path):
+        st.info("🚀 Chargement ultra-rapide depuis le fichier Parquet optimisé")
+        try:
+            df = pd.read_parquet(parquet_path)
+            return df
+        except Exception as e:
+            st.warning(f"⚠️ Erreur avec le fichier Parquet: {e}. Essai avec le CSV...")
+    
+    # Fallback sur CSV
+    if os.path.exists(csv_path):
+        st.info("📁 Chargement depuis le fichier CSV")
+    else:
+        # Si aucun fichier n'existe, utiliser les données d'exemple
         try:
             from sample_data import create_sample_data
             st.warning("⚠️ Fichier PHMEV principal non trouvé. Utilisation de données d'exemple pour la démonstration.")
             return create_sample_data()
         except ImportError:
-            st.error("❌ Impossible de charger les données d'exemple. Veuillez ajouter le fichier OPEN_PHMEV_2024.CSV")
+            st.error("❌ Impossible de charger les données d'exemple. Veuillez ajouter le fichier OPEN_PHMEV_2024.parquet ou .CSV")
             return None
     
     # Types de données optimisés pour économiser la mémoire
@@ -570,10 +585,59 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
         
         import os
         script_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Priorité 1: Parquet (plus rapide)
+        parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
         csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
         
-        # Si le fichier principal n'existe pas, utiliser les données d'exemple
+        # Essayer d'abord le format Parquet
+        if os.path.exists(parquet_path):
+            status_text.text("🚀 Chargement ultra-rapide depuis Parquet...")
+            progress_bar.progress(50)
+            try:
+                df = pd.read_parquet(parquet_path)
+                
+                # Ajouter les colonnes dérivées si nécessaires
+                if 'etablissement' not in df.columns:
+                    df['etablissement'] = df['nom_etb'].astype(str).fillna('Non spécifié')
+                    if 'raison_sociale_etb' in df.columns:
+                        df['etablissement'] = df['etablissement'].where(
+                            df['etablissement'] != 'nan', 
+                            df['raison_sociale_etb'].astype(str)
+                        )
+                
+                if 'medicament' not in df.columns:
+                    df['medicament'] = df['L_ATC5'].astype(str).fillna('Non spécifié')
+                if 'categorie' not in df.columns:
+                    df['categorie'] = df['categorie_jur'].astype(str).fillna('Non spécifiée')
+                if 'ville' not in df.columns:
+                    df['ville'] = df['nom_ville'].astype(str).fillna('Non spécifiée')
+                if 'region' not in df.columns:
+                    df['region'] = df['region_etb'].fillna(0)
+                if 'code_cip' not in df.columns:
+                    df['code_cip'] = df['CIP13'].astype(str)
+                if 'libelle_cip' not in df.columns:
+                    df['libelle_cip'] = df['l_cip13'].fillna('Non spécifié')
+                
+                progress_bar.progress(100)
+                status_text.text("✅ Données Parquet chargées avec succès !")
+                st.session_state.phmev_data_cached = df
+                
+                # Nettoyage
+                import time, gc
+                time.sleep(1)
+                progress_bar.empty()
+                status_text.empty()
+                gc.collect()
+                
+                return df
+                
+            except Exception as e:
+                st.warning(f"⚠️ Erreur avec le fichier Parquet: {e}. Essai avec le CSV...")
+        
+        # Fallback sur CSV
         if not os.path.exists(csv_path):
+            # Si aucun fichier n'existe, utiliser les données d'exemple
             try:
                 from sample_data import create_sample_data
                 st.warning("⚠️ Fichier PHMEV principal non trouvé. Utilisation de données d'exemple pour la démonstration.")
@@ -581,7 +645,7 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
                 st.session_state.phmev_data_cached = df
                 return df
             except ImportError:
-                st.error("❌ Impossible de charger les données d'exemple. Veuillez ajouter le fichier OPEN_PHMEV_2024.CSV")
+                st.error("❌ Impossible de charger les données d'exemple. Veuillez ajouter le fichier OPEN_PHMEV_2024.parquet ou .CSV")
                 return None
         
         # Optimisation mémoire maximale (sans category pour éviter les erreurs)

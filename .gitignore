@@ -3,7 +3,9 @@
 *.csv
 *.xlsx
 *.xls
+*.parquet
 OPEN_PHMEV_2024.CSV
+OPEN_PHMEV_2024.parquet
 
 # Fichiers Python
 __pycache__/
