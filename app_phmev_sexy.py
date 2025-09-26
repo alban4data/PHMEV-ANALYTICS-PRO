@@ -519,18 +519,28 @@ def load_data_background(nrows=None):
     parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
     csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
     
+    # FORCER l'utilisation des données d'exemple pour Streamlit Cloud (temporaire pour debug)
     # Détecter si on est sur Streamlit Cloud (mémoire limitée)
-    is_streamlit_cloud = os.environ.get('STREAMLIT_CLOUD', False) or 'streamlit.app' in os.environ.get('HOSTNAME', '')
+    is_streamlit_cloud = (
+        os.environ.get('STREAMLIT_CLOUD', False) or 
+        'streamlit.app' in os.environ.get('HOSTNAME', '') or
+        not os.path.exists(parquet_path)  # Si pas de Parquet local, on est probablement sur le cloud
+    )
     
-    # Sur Streamlit Cloud, utiliser directement les données d'exemple pour éviter les problèmes de mémoire
-    if is_streamlit_cloud:
+    # DEBUG - Afficher les informations d'environnement
+    st.info(f"🔍 DEBUG - Parquet existe: {os.path.exists(parquet_path)}")
+    st.info(f"🔍 DEBUG - CSV existe: {os.path.exists(csv_path)}")
+    st.info(f"🔍 DEBUG - Hostname: {os.environ.get('HOSTNAME', 'Non défini')}")
+    
+    # FORCER les données d'exemple si pas de fichier local (= Streamlit Cloud)
+    if not os.path.exists(parquet_path) and not os.path.exists(csv_path):
         try:
             from sample_data import create_sample_data
-            st.info("☁️ Streamlit Cloud détecté - Utilisation de données d'exemple optimisées pour la démonstration")
+            st.success("☁️ Streamlit Cloud détecté - Utilisation de données d'exemple optimisées pour la démonstration")
             st.info("💡 Les données d'exemple contiennent 1000 lignes représentatives pour tester toutes les fonctionnalités")
             return create_sample_data()
-        except ImportError:
-            st.error("❌ Impossible de charger les données d'exemple")
+        except ImportError as e:
+            st.error(f"❌ Impossible de charger les données d'exemple: {e}")
             return None
     
     # En local, essayer d'abord le format Parquet
@@ -674,11 +684,16 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
         parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
         csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
         
+        # FORCER l'utilisation des données d'exemple pour Streamlit Cloud (temporaire pour debug)
         # Détecter si on est sur Streamlit Cloud (mémoire limitée)
-        is_streamlit_cloud = os.environ.get('STREAMLIT_CLOUD', False) or 'streamlit.app' in os.environ.get('HOSTNAME', '')
+        is_streamlit_cloud = (
+            os.environ.get('STREAMLIT_CLOUD', False) or 
+            'streamlit.app' in os.environ.get('HOSTNAME', '') or
+            not os.path.exists(parquet_path)  # Si pas de Parquet local, on est probablement sur le cloud
+        )
         
-        # Sur Streamlit Cloud, utiliser directement les données d'exemple pour éviter les problèmes de mémoire
-        if is_streamlit_cloud:
+        # FORCER les données d'exemple si pas de fichier local (= Streamlit Cloud)
+        if not os.path.exists(parquet_path) and not os.path.exists(csv_path):
             try:
                 from sample_data import create_sample_data
                 status_text.text("☁️ Streamlit Cloud détecté - Chargement des données d'exemple...")
