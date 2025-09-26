@@ -759,7 +759,8 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
         import os
         script_dir = os.path.dirname(os.path.abspath(__file__))
         
-        # Priorité 1: Parquet (plus rapide)
+        # Priorité 1: Parquet échantillon (optimisé pour Streamlit Cloud)
+        parquet_sample_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_sample_10k.parquet')
         parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
         csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
         
@@ -771,18 +772,15 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
             not os.path.exists(parquet_path)  # Si pas de Parquet local, on est probablement sur le cloud
         )
         
-        # FORCER les données d'exemple sur Streamlit Cloud pour éviter les erreurs
-        if not os.path.exists(parquet_path) and not os.path.exists(csv_path):
+        # Priorité 1: Échantillon Parquet (parfait pour Streamlit Cloud)
+        if os.path.exists(parquet_sample_path):
+            status_text.text("🚀 Chargement ultra-rapide de l'échantillon optimisé...")
+            progress_bar.progress(70)
             try:
-                status_text.text("☁️ Chargement des données d'exemple optimisées...")
-                progress_bar.progress(50)
-                
-                from sample_data import create_sample_data
-                df = create_sample_data()
-                st.session_state.phmev_data_cached = df
-                
+                df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
                 progress_bar.progress(100)
-                status_text.text("✅ Données d'exemple chargées avec succès !")
+                status_text.text(f"✅ Échantillon chargé ! ({len(df):,} lignes représentatives)")
+                st.session_state.phmev_data_cached = df
                 
                 # Nettoyage
                 import time, gc
@@ -792,10 +790,9 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
                 gc.collect()
                 
                 return df
-                
-            except ImportError as e:
-                st.error(f"❌ Impossible de charger les données d'exemple: {e}")
-                return None
+            except Exception as e:
+                st.warning(f"⚠️ Erreur avec l'échantillon: {e}")
+                progress_bar.progress(10)
         
         # En local, essayer d'abord le format Parquet
         if os.path.exists(parquet_path):
