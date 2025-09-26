@@ -519,7 +519,21 @@ def load_data_background(nrows=None):
     parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
     csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
     
-    # Essayer d'abord le format Parquet
+    # Détecter si on est sur Streamlit Cloud (mémoire limitée)
+    is_streamlit_cloud = os.environ.get('STREAMLIT_CLOUD', False) or 'streamlit.app' in os.environ.get('HOSTNAME', '')
+    
+    # Sur Streamlit Cloud, utiliser directement les données d'exemple pour éviter les problèmes de mémoire
+    if is_streamlit_cloud:
+        try:
+            from sample_data import create_sample_data
+            st.info("☁️ Streamlit Cloud détecté - Utilisation de données d'exemple optimisées pour la démonstration")
+            st.info("💡 Les données d'exemple contiennent 1000 lignes représentatives pour tester toutes les fonctionnalités")
+            return create_sample_data()
+        except ImportError:
+            st.error("❌ Impossible de charger les données d'exemple")
+            return None
+    
+    # En local, essayer d'abord le format Parquet
     if os.path.exists(parquet_path):
         st.info("🚀 Chargement ultra-rapide depuis le fichier Parquet optimisé")
         try:
@@ -660,7 +674,33 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
         parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
         csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
         
-        # Essayer d'abord le format Parquet
+        # Détecter si on est sur Streamlit Cloud (mémoire limitée)
+        is_streamlit_cloud = os.environ.get('STREAMLIT_CLOUD', False) or 'streamlit.app' in os.environ.get('HOSTNAME', '')
+        
+        # Sur Streamlit Cloud, utiliser directement les données d'exemple pour éviter les problèmes de mémoire
+        if is_streamlit_cloud:
+            try:
+                from sample_data import create_sample_data
+                status_text.text("☁️ Streamlit Cloud détecté - Chargement des données d'exemple...")
+                progress_bar.progress(100)
+                st.info("☁️ Streamlit Cloud détecté - Utilisation de données d'exemple optimisées pour la démonstration")
+                st.info("💡 Les données d'exemple contiennent 1000 lignes représentatives pour tester toutes les fonctionnalités")
+                df = create_sample_data()
+                st.session_state.phmev_data_cached = df
+                
+                # Nettoyage
+                import time, gc
+                time.sleep(1)
+                progress_bar.empty()
+                status_text.empty()
+                gc.collect()
+                
+                return df
+            except ImportError:
+                st.error("❌ Impossible de charger les données d'exemple")
+                return None
+        
+        # En local, essayer d'abord le format Parquet
         if os.path.exists(parquet_path):
             status_text.text("🚀 Chargement ultra-rapide depuis Parquet...")
             progress_bar.progress(50)
