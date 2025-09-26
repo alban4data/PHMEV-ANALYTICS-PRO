@@ -1,7 +1,7 @@
 """
 🚀 Application Streamlit SEXY pour l'analyse des données PHMEV
 💊 Analyse avancée des délivrances pharmaceutiques par établissement
-✨ Design moderne et interface intuitive
+✨ Design moderne et interface intuitive - Version optimisée Streamlit Cloud
 """
 
 import streamlit as st
