@@ -67,45 +67,48 @@ st.markdown("""
 .kpi-card.base::before { background: linear-gradient(90deg, #4facfe, #00f2fe); }
 .kpi-card.count::before { background: linear-gradient(90deg, #43e97b, #38f9d7); }
 
-/* Effet hover magnifique */
-.kpi-card:hover {
-    transform: translateY(-8px) scale(1.02);
+/* Effet hover magnifique - RENFORCÉ */
+.kpi-card:hover,
+div[class*="kpi-card"]:hover {
+    transform: translateY(-8px) scale(1.02) !important;
     box-shadow: 
         0 25px 50px rgba(0,0,0,0.15),
-        inset 0 1px 0 rgba(255,255,255,0.9);
-    border-color: rgba(102, 126, 234, 0.4);
+        inset 0 1px 0 rgba(255,255,255,0.9) !important;
+    border-color: rgba(102, 126, 234, 0.4) !important;
 }
 
-/* Icône en haut */
-.kpi-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    display: block;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+/* Styles KPI persistants après filtrage */
+.kpi-value,
+div[class*="kpi-value"] {
+    font-size: 2.8rem !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+    margin: 1rem 0 !important;
+    background: linear-gradient(135deg, #1e293b, #475569) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
 }
 
-/* Valeur principale - grosse et belle */
-.kpi-value {
-    font-size: 2.8rem;
-    font-weight: 800;
-    line-height: 1;
-    margin: 1rem 0;
-    background: linear-gradient(135deg, #1e293b, #475569);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+.kpi-icon,
+div[class*="kpi-icon"] {
+    font-size: 2.5rem !important;
+    margin-bottom: 1rem !important;
+    display: block !important;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)) !important;
 }
 
-/* Label élégant */
-.kpi-label {
-    font-size: 1rem;
-        font-weight: 600;
-    color: #475569;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin: 0.5rem 0;
+.kpi-label,
+div[class*="kpi-label"] {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    margin: 0.5rem 0 !important;
 }
+
 
 /* Delta/Description */
 .kpi-delta {
@@ -116,51 +119,32 @@ st.markdown("""
     margin-top: 0.5rem;
 }
 
-/* Tables plus jolies avec valeurs numériques centrées */
-.dataframe {
+/* 📊 TABLES - Centrage forcé avec CSS et JavaScript */
+[data-testid="stDataFrame"] {
     border-radius: 8px !important;
-    border: 1px solid #e2e8f0 !important;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.1) !important;
     overflow: hidden !important;
+    background: white !important;
 }
 
-/* Centrer toutes les valeurs numériques dans les tableaux */
-.dataframe td:nth-child(n+2),
-.dataframe th:nth-child(n+2) {
+/* 🎯 CENTRAGE ULTRA-FORCÉ - Tous les sélecteurs possibles */
+[data-testid="stDataFrame"] td:nth-child(n+2),
+[data-testid="stDataFrame"] th:nth-child(n+2),
+.stDataFrame td:nth-child(n+2),
+.stDataFrame th:nth-child(n+2),
+div[data-testid="stDataFrame"] table td:nth-child(n+2),
+div[data-testid="stDataFrame"] table th:nth-child(n+2) {
     text-align: center !important;
+    text-align-last: center !important;
+    font-weight: 600 !important;
+    justify-content: center !important;
 }
 
-/* Centrer spécifiquement les colonnes avec des valeurs numériques */
-.dataframe td[data-testid*="cell"]:has(span[title*="€"]),
-.dataframe td[data-testid*="cell"]:has(span[title*="%"]),
-.dataframe td[data-testid*="cell"]:has(span[title*="K"]),
-.dataframe td[data-testid*="cell"]:has(span[title*="M"]),
-.dataframe td[data-testid*="cell"]:has(span[title*="B"]) {
-    text-align: center !important;
-}
-
-/* Centrer les colonnes communes de résultats numériques */
-.dataframe td:contains("€"),
-.dataframe td:contains("%"),
-.dataframe td:contains("K"),
-.dataframe td:contains("M"),
-.dataframe td:contains("B") {
-    text-align: center !important;
-}
-
-/* Approche plus large - centrer toutes les colonnes sauf la première (noms) */
-.stDataFrame table tbody tr td:not(:first-child) {
-    text-align: center !important;
-}
-
-.stDataFrame table thead tr th:not(:first-child) {
-    text-align: center !important;
-}
-
-/* Centrer dans les tables Streamlit */
-[data-testid="stDataFrame"] table td:not(:first-child),
-[data-testid="stDataFrame"] table th:not(:first-child) {
-    text-align: center !important;
+/* Première colonne à gauche */
+[data-testid="stDataFrame"] td:first-child,
+[data-testid="stDataFrame"] th:first-child {
+    text-align: left !important;
+    font-weight: 600 !important;
+    padding-left: 1rem !important;
 }
 
 /* Headers de sections - Style normal et lisible */
@@ -205,11 +189,15 @@ div[style*="backdrop-filter: blur(10px)"] div {
     color: white !important;
 }
 
-/* 🌙 FOND NOIR pour TOUTE la zone principale */
+/* 🌙 FOND NOIR pour TOUTE la zone principale - RENFORCÉ pour persister */
 [data-testid="stAppViewContainer"] .main .block-container,
 .stApp .main .block-container,
 section.main > div,
-.main > div.block-container {
+.main > div.block-container,
+[data-testid="stAppViewContainer"] .main,
+.stApp .main,
+section.main,
+.main {
     background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%) !important;
     border-radius: 20px !important;
     padding: 2rem !important;
@@ -220,9 +208,134 @@ section.main > div,
     border: 1px solid #404040 !important;
 }
 
-/* Forcer le fond noir sur tous les conteneurs principaux */
-[data-testid="stAppViewContainer"],
-.stApp,
+/* ⚡ SIDEBAR - Thème classique avec éléments visibles */
+[data-testid="stSidebar"] {
+    background: white !important;
+    color: #262730 !important;
+}
+
+/* 🔧 WIDGETS SIDEBAR - Styles pour visibilité */
+[data-testid="stSidebar"] .stSelectbox > div > div {
+    background: white !important;
+    color: #262730 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+[data-testid="stSidebar"] .stMultiSelect > div > div {
+    background: white !important;
+    color: #262730 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+[data-testid="stSidebar"] .stTextInput > div > div > input {
+    background: white !important;
+    color: #262730 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+/* Options des multiselect visibles */
+[data-testid="stSidebar"] .stMultiSelect div[data-baseweb="select"] {
+    background: white !important;
+    color: #262730 !important;
+}
+
+[data-testid="stSidebar"] .stMultiSelect div[role="listbox"] {
+    background: white !important;
+    color: #262730 !important;
+}
+
+[data-testid="stSidebar"] .stMultiSelect div[role="option"] {
+    background: white !important;
+    color: #262730 !important;
+}
+
+/* Texte des labels et options */
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] div {
+    color: #262730 !important;
+}
+
+/* Checkbox styling */
+[data-testid="stSidebar"] .stCheckbox {
+    color: #262730 !important;
+}
+
+/* Slider styling */
+[data-testid="stSidebar"] .stSlider {
+    color: #262730 !important;
+}
+
+/* 🎯 MULTISELECT - Styles ultra-spécifiques pour visibilité */
+[data-testid="stSidebar"] .stMultiSelect > div > div > div {
+    background: white !important;
+    color: #262730 !important;
+}
+
+[data-testid="stSidebar"] .stMultiSelect span {
+    color: #262730 !important;
+}
+
+/* Dropdown menu background */
+[data-testid="stSidebar"] div[data-baseweb="popover"] {
+    background: white !important;
+}
+
+[data-testid="stSidebar"] div[data-baseweb="popover"] * {
+    background: white !important;
+    color: #262730 !important;
+}
+
+/* Selected items in multiselect */
+[data-testid="stSidebar"] .stMultiSelect div[data-baseweb="tag"] {
+    background: #e2e8f0 !important;
+    color: #262730 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+/* Input placeholder text */
+[data-testid="stSidebar"] input::placeholder {
+    color: #9ca3af !important;
+}
+
+/* Focus states */
+[data-testid="stSidebar"] input:focus,
+[data-testid="stSidebar"] select:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 1px #667eea !important;
+}
+
+/* 🌙 FOND NOIR - Approche ULTRA-AGRESSIVE */
+html, body {
+    background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%) !important;
+}
+
+.stApp {
+    background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%) !important;
+}
+
+/* Zone principale avec fond noir garanti */
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%) !important;
+}
+
+/* Conteneur principal */
+.main .block-container {
+    background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%) !important;
+    border-radius: 20px !important;
+    padding: 2rem !important;
+    margin: 1rem !important;
+    box-shadow: 
+        0 10px 40px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    border: 1px solid #404040 !important;
+}
+
+/* Forcer sur TOUS les éléments principaux */
+[data-testid="stAppViewContainer"] > div,
+[data-testid="stAppViewContainer"] > div > div:not([data-testid="stSidebar"]),
+.main,
 section.main {
     background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%) !important;
 }
@@ -248,27 +361,35 @@ section.main {
     font-weight: 500 !important;
 }
 
-/* Expandeurs plus lisibles - FORCER le texte blanc partout */
+/* 📋 EXPANDEUR - Design moderne et lisible avec fond contrasté */
 .main [data-testid="stExpander"] {
-    background: rgba(255,255,255,0.1) !important;
-    border: 1px solid rgba(255,255,255,0.2) !important;
-    border-radius: 10px !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.98) 100%) !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 15px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+    margin: 1rem 0 !important;
 }
 
 .main [data-testid="stExpander"] summary {
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    font-size: 1.1rem !important;
+    color: #1a202c !important;
+    font-weight: 700 !important;
+    font-size: 1.2rem !important;
+    padding: 1rem !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
 }
 
 .main [data-testid="stExpander"] div {
-    color: #ffffff !important;
-    background: rgba(255,255,255,0.05) !important;
-    padding: 1rem !important;
-    border-radius: 0 0 10px 10px !important;
+    color: #2d3748 !important;
+    background: rgba(255,255,255,0.9) !important;
+    padding: 1.5rem !important;
+    border-radius: 0 0 15px 15px !important;
+    line-height: 1.6 !important;
 }
 
-/* FORCER le texte blanc dans TOUT l'expandeur */
+/* FORCER le texte NOIR dans TOUT l'expandeur pour lisibilité */
 .main [data-testid="stExpander"] p,
 .main [data-testid="stExpander"] strong,
 .main [data-testid="stExpander"] div,
@@ -279,16 +400,30 @@ section.main {
 .main [data-testid="stExpander"] h4,
 .main [data-testid="stExpander"] li,
 .main [data-testid="stExpander"] ul {
-    color: #ffffff !important;
+    color: #2d3748 !important;
+    font-weight: 500 !important;
 }
 
-/* Forcer même les éléments markdown dans l'expandeur */
+/* Titres dans l'expandeur en couleur */
+.main [data-testid="stExpander"] h3 {
+    color: #667eea !important;
+    font-weight: 700 !important;
+    margin: 1rem 0 0.5rem 0 !important;
+}
+
+/* Strong elements en bleu */
+.main [data-testid="stExpander"] strong {
+    color: #667eea !important;
+    font-weight: 700 !important;
+}
+
+/* Markdown dans l'expandeur */
 .main [data-testid="stExpander"] [data-testid="stMarkdown"] {
-    color: #ffffff !important;
+    color: #2d3748 !important;
 }
 
 .main [data-testid="stExpander"] [data-testid="stMarkdown"] * {
-    color: #ffffff !important;
+    color: #2d3748 !important;
 }
 
 /* Colonnes adaptées au fond noir */
@@ -297,18 +432,28 @@ section.main {
     border: 1px solid #505050 !important;
 }
 
-/* Cards ultra-contrastées */
-.main .kpi-card {
+/* Cards ultra-contrastées - FORCÉES pour persister lors du filtrage */
+.main .kpi-card,
+[data-testid="stAppViewContainer"] .kpi-card,
+.stApp .kpi-card,
+div[class*="kpi-card"] {
     background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%) !important;
     box-shadow: 
         0 8px 30px rgba(0,0,0,0.5),
         inset 0 1px 0 rgba(255,255,255,0.9) !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 20px !important;
+    padding: 2rem 1.5rem !important;
+    margin: 1rem 0.5rem !important;
+    min-height: 160px !important;
+    position: relative !important;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    text-align: center !important;
+    overflow: hidden !important;
+    color: #1e293b !important;
 }
 
 /* 🎨 SIDEBAR - Titres en noir pour lisibilité */
-.sidebar .element-container h2,
-section[data-testid="stSidebar"] h2,
-.sidebar h2,
 [data-testid="stSidebar"] h2 {
     color: #1a1a1a !important;
     font-weight: 700 !important;
@@ -316,31 +461,118 @@ section[data-testid="stSidebar"] h2,
     border-bottom: 2px solid #667eea !important;
 }
 
-/* 🔄 Bouton Vider le Cache - Gradient Violet comme le titre */
+/* 🔄 Bouton Vider le Cache - Simple et efficace */
 .stButton > button {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     color: white !important;
     border: none !important;
-    border-radius: 12px !important;
-    padding: 0.75rem 1.5rem !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 1rem !important;
     font-weight: 600 !important;
-    font-size: 0.9rem !important;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
-    transition: all 0.3s ease !important;
-    text-transform: none !important;
+    width: 100% !important;
 }
 
-.stButton > button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
-    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+
+/* Force refresh styles after filtering - CLOUD FIX */
+[data-testid="stAppViewContainer"].filtered {
+    animation: refreshStyles 0.1s ease-in-out;
 }
 
-.stButton > button:active {
-    transform: translateY(0px) !important;
-    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.5) !important;
+@keyframes refreshStyles {
+    0% { opacity: 0.99; }
+    100% { opacity: 1; }
 }
 </style>
+
+<script>
+// 🌙 Force l'arrière-plan noir après chargement
+setTimeout(function() {
+    // Appliquer l'arrière-plan noir à tous les éléments principaux
+    const elements = [
+        document.querySelector('.stApp'),
+        document.querySelector('[data-testid="stAppViewContainer"]'),
+        document.querySelector('.main'),
+        document.body,
+        document.documentElement
+    ];
+    
+    elements.forEach(el => {
+        if (el && !el.closest('[data-testid="stSidebar"]')) {
+            el.style.background = 'linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%)';
+            el.style.backgroundColor = '#1a1a1a';
+        }
+    });
+    
+    // Forcer la sidebar en blanc et les éléments visibles
+    const sidebar = document.querySelector('[data-testid="stSidebar"]');
+    if (sidebar) {
+        sidebar.style.background = 'white';
+        sidebar.style.backgroundColor = 'white';
+        sidebar.style.color = '#262730';
+        
+        // Forcer tous les éléments de la sidebar à être visibles
+        const sidebarElements = sidebar.querySelectorAll('*');
+        sidebarElements.forEach(el => {
+            if (!el.style.color || el.style.color === 'white' || el.style.color === '#ffffff') {
+                el.style.color = '#262730';
+            }
+            if (el.tagName === 'INPUT' || el.tagName === 'SELECT') {
+                el.style.backgroundColor = 'white';
+                el.style.color = '#262730';
+                el.style.border = '1px solid #d1d5db';
+            }
+        });
+    }
+    
+    // 📊 FORCER LE CENTRAGE DES TABLEAUX
+    function centerTableColumns() {
+        const tables = document.querySelectorAll('[data-testid="stDataFrame"] table');
+        tables.forEach(table => {
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td, th');
+                cells.forEach((cell, index) => {
+                    if (index > 0) { // Toutes les colonnes sauf la première
+                        cell.style.textAlign = 'center';
+                        cell.style.fontWeight = '600';
+                    } else { // Première colonne à gauche
+                        cell.style.textAlign = 'left';
+                        cell.style.fontWeight = '600';
+                        cell.style.paddingLeft = '1rem';
+                    }
+                });
+            });
+        });
+    }
+    
+    // Centrer immédiatement et après chaque changement
+    centerTableColumns();
+    
+    // Observer les changements dans les tableaux
+    const tableObserver = new MutationObserver(function(mutations) {
+        let shouldCenter = false;
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList' && 
+                (mutation.target.closest('[data-testid="stDataFrame"]') || 
+                 mutation.target.querySelector('[data-testid="stDataFrame"]'))) {
+                shouldCenter = true;
+            }
+        });
+        if (shouldCenter) {
+            setTimeout(centerTableColumns, 50);
+        }
+    });
+    
+    // Observer tout le conteneur principal
+    const mainContainer = document.querySelector('[data-testid="stAppViewContainer"]');
+    if (mainContainer) {
+        tableObserver.observe(mainContainer, {
+            childList: true,
+            subtree: true
+        });
+    }
+}, 100);
+</script>
 
 """, unsafe_allow_html=True)
 
@@ -365,10 +597,8 @@ def load_data_background(nrows=None):
     
     # Priorité 1: Échantillon Parquet (parfait pour Streamlit Cloud)
     if os.path.exists(parquet_sample_path):
-        st.info("🚀 Chargement du dataset complet optimisé")
         try:
             df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
-            st.success(f"✅ Dataset complet chargé avec succès ! ({len(df):,} lignes)")
             return df
         except Exception as e:
             st.warning(f"⚠️ Erreur avec l'échantillon Parquet: {e}")
@@ -572,17 +802,16 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
         
         # Priorité 1: Échantillon Parquet (parfait pour Streamlit Cloud)
         if os.path.exists(parquet_sample_path):
-            status_text.text("🚀 Chargement du dataset complet optimisé...")
+            status_text.text("🚀 Chargement optimisé...")
             progress_bar.progress(70)
             try:
                 df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
                 progress_bar.progress(100)
-                status_text.text(f"✅ Dataset complet chargé ! ({len(df):,} lignes)")
                 st.session_state.phmev_data_cached = df
                 
-                # Nettoyage
+                # Nettoyage rapide
                 import time, gc
-                time.sleep(1)
+                time.sleep(0.5)
                 progress_bar.empty()
                 status_text.empty()
                 gc.collect()
@@ -833,6 +1062,59 @@ def ultra_fast_search(search_index, search_term, max_results=50):
     results.sort(key=lambda x: (x[0], x[1].lower()))
     return [item[1] for item in results[:max_results]]
 
+def get_filtered_dataframe(df, current_filters):
+    """🔄 Applique tous les filtres actuels et retourne le DataFrame filtré"""
+    df_filtered = df
+    
+    # Filtres ATC hiérarchiques
+    if current_filters.get('atc1_filtre'):
+        df_filtered = df_filtered[df_filtered['l_atc1'].isin(current_filters['atc1_filtre'])]
+    if current_filters.get('atc2_filtre'):
+        df_filtered = df_filtered[df_filtered['L_ATC2'].isin(current_filters['atc2_filtre'])]
+    if current_filters.get('atc3_filtre'):
+        df_filtered = df_filtered[df_filtered['L_ATC3'].isin(current_filters['atc3_filtre'])]
+    if current_filters.get('atc4_filtre'):
+        df_filtered = df_filtered[df_filtered['L_ATC4'].isin(current_filters['atc4_filtre'])]
+    if current_filters.get('atc5_filtre'):
+        df_filtered = df_filtered[df_filtered['L_ATC5'].isin(current_filters['atc5_filtre'])]
+    
+    # Filtres CIP/Médicaments
+    if current_filters.get('libelle_filtre'):
+        df_filtered = df_filtered[df_filtered['libelle_cip'].isin(current_filters['libelle_filtre'])]
+    
+    # Filtres géographiques et organisationnels
+    if current_filters.get('ville_filtre'):
+        df_filtered = df_filtered[df_filtered['ville'].isin(current_filters['ville_filtre'])]
+    if current_filters.get('categorie_filtre'):
+        df_filtered = df_filtered[df_filtered['categorie'].isin(current_filters['categorie_filtre'])]
+    if current_filters.get('etablissement_filtre'):
+        df_filtered = df_filtered[df_filtered['etablissement'].isin(current_filters['etablissement_filtre'])]
+    
+    return df_filtered
+
+def get_available_options(df_filtered, filter_type):
+    """📊 Retourne les options disponibles pour un type de filtre donné"""
+    if filter_type == 'atc1':
+        return sorted(df_filtered[['atc1', 'l_atc1']].drop_duplicates().set_index('atc1')['l_atc1'].dropna().to_dict().items())
+    elif filter_type == 'atc2':
+        return sorted(df_filtered[['atc2', 'L_ATC2']].drop_duplicates().set_index('atc2')['L_ATC2'].dropna().to_dict().items())
+    elif filter_type == 'atc3':
+        return sorted(df_filtered[['atc3', 'L_ATC3']].drop_duplicates().set_index('atc3')['L_ATC3'].dropna().to_dict().items())
+    elif filter_type == 'atc4':
+        return sorted(df_filtered[['atc4', 'L_ATC4']].drop_duplicates().set_index('atc4')['L_ATC4'].dropna().to_dict().items())
+    elif filter_type == 'atc5':
+        return sorted(df_filtered[['ATC5', 'L_ATC5']].drop_duplicates().set_index('ATC5')['L_ATC5'].dropna().to_dict().items())
+    elif filter_type == 'etablissements':
+        return sorted(df_filtered['etablissement'].dropna().unique().tolist())
+    elif filter_type == 'villes':
+        return sorted(df_filtered['ville'].dropna().unique().tolist())
+    elif filter_type == 'categories':
+        return sorted(df_filtered['categorie'].dropna().unique().tolist())
+    elif filter_type == 'medicaments':
+        return sorted([x for x in df_filtered['libelle_cip'].dropna().unique() if x not in ['Non restitué', 'Honoraires de dispensation']])
+    else:
+        return []
+
 def format_number(value):
     """💫 Formatage sexy des nombres"""
     if pd.isna(value):
@@ -888,15 +1170,6 @@ def initialize_app():
                     df = load_data_background()
                     if df is not None:
                         st.session_state.phmev_data_cached = df
-                        # Message adaptatif selon le nombre de lignes
-                        if len(df) >= 3000000:
-                            st.success(f"✅ Dataset complet optimisé chargé ! ({len(df):,} lignes)")
-                        elif len(df) >= 1000000:
-                            st.success(f"✅ Dataset complet chargé ! ({len(df):,} lignes)")
-                        elif len(df) >= 10000:
-                            st.success(f"✅ Échantillon représentatif chargé ! ({len(df):,} lignes)")
-                        else:
-                            st.success(f"✅ Données de démonstration chargées ! ({len(df):,} lignes)")
             st.session_state.data_preloaded = True
         except Exception as e:
             st.warning(f"⚠️ Chargement différé : {e}")
@@ -917,6 +1190,7 @@ def main():
     auto_preload = st.sidebar.checkbox(
         "🚀 Pré-chargement automatique", 
         value=True, 
+        key="auto_preload_checkbox",
         help="Charge les données automatiquement au démarrage"
     )
     
@@ -954,7 +1228,280 @@ def main():
     if df is None:
         st.stop()
     
-    # 📊 Informations sur le dataset
+    
+    # 🚀 Pré-calcul ultra-rapide de TOUS les filtres
+    filter_options = get_all_filter_options(df)
+    
+    # 🎛️ Sidebar ultra moderne avec filtres interdépendants
+    with st.sidebar:
+        st.markdown("## ⚡ **Filtres Interdépendants**")
+        st.markdown("*Chaque sélection met à jour les autres filtres automatiquement*")
+        
+        # 🔄 SYSTÈME DE FILTRES INTERDÉPENDANTS
+        # Logique: ATC → Médicaments → Villes → Établissements
+        
+        # Initialiser les filtres actuels
+        current_filters = {}
+        
+        # ========== HIÉRARCHIE PHARMACEUTIQUE D'ABORD ==========
+        st.markdown("### 💊 **Hiérarchie Pharmaceutique (QUOI)**")
+        st.markdown("*Sélectionnez d'abord les médicaments qui vous intéressent*")
+        
+        # Niveau 1: ATC1
+        st.markdown("#### 🧬 **Systèmes Anatomiques (ATC1)**")
+        df_temp = get_filtered_dataframe(df, current_filters)
+        atc1_options = get_available_options(df_temp, 'atc1')
+        atc1_display = [f"{code} - {libelle}" for code, libelle in atc1_options]
+        
+        atc1_selection = st.multiselect(
+            f"Systèmes anatomiques ({len(atc1_options)} disponibles)",
+            options=atc1_display,
+            default=[],
+            key="atc1_multiselect_interdep"
+        )
+        
+        atc1_codes = [sel.split(' - ')[0] for sel in atc1_selection] if atc1_selection else []
+        atc1_filtre = [dict(atc1_options)[code] for code in atc1_codes] if atc1_codes else []
+        current_filters['atc1_filtre'] = atc1_filtre
+        
+        # Niveau 2: ATC2 (Groupes thérapeutiques)
+        st.markdown("#### 💉 **Groupes Thérapeutiques (ATC2)**")
+        df_temp = get_filtered_dataframe(df, current_filters)
+        atc2_options = get_available_options(df_temp, 'atc2')
+        atc2_display = [f"{code} - {libelle}" for code, libelle in atc2_options]
+        
+        if atc2_options:
+            atc2_selection = st.multiselect(
+                f"Groupes thérapeutiques ({len(atc2_options)} disponibles)",
+                options=atc2_display,
+                default=[],
+                key="atc2_multiselect_interdep"
+            )
+            
+            atc2_codes = [sel.split(' - ')[0] for sel in atc2_selection] if atc2_selection else []
+            atc2_filtre = [dict(atc2_options)[code] for code in atc2_codes] if atc2_codes else []
+        else:
+            atc2_filtre = []
+            st.info("👆 Sélectionnez d'abord des filtres pour voir les groupes thérapeutiques")
+        
+        current_filters['atc2_filtre'] = atc2_filtre
+        
+        # Niveau 3: ATC3 (Sous-groupes pharmacologiques)
+        st.markdown("#### 🔬 **Sous-groupes Pharmacologiques (ATC3)**")
+        df_temp = get_filtered_dataframe(df, current_filters)
+        atc3_options = get_available_options(df_temp, 'atc3')
+        atc3_display = [f"{code} - {libelle}" for code, libelle in atc3_options]
+        
+        if atc3_options:
+            atc3_selection = st.multiselect(
+                f"Sous-groupes pharmacologiques ({len(atc3_options)} disponibles)",
+                options=atc3_display,
+                default=[],
+                key="atc3_multiselect_interdep"
+            )
+            
+            atc3_codes = [sel.split(' - ')[0] for sel in atc3_selection] if atc3_selection else []
+            atc3_filtre = [dict(atc3_options)[code] for code in atc3_codes] if atc3_codes else []
+        else:
+            atc3_filtre = []
+            if current_filters.get('atc2_filtre'):
+                st.info("👆 Affinez vos sélections pour voir les sous-groupes")
+        
+        current_filters['atc3_filtre'] = atc3_filtre
+        
+        # Niveau 4: ATC4 (Groupes chimiques)
+        st.markdown("#### ⚗️ **Groupes Chimiques (ATC4)**")
+        df_temp = get_filtered_dataframe(df, current_filters)
+        atc4_options = get_available_options(df_temp, 'atc4')
+        atc4_display = [f"{code} - {libelle}" for code, libelle in atc4_options]
+        
+        if atc4_options:
+            atc4_selection = st.multiselect(
+                f"Groupes chimiques ({len(atc4_options)} disponibles)",
+                options=atc4_display,
+                default=[],
+                key="atc4_multiselect_interdep"
+            )
+            
+            atc4_codes = [sel.split(' - ')[0] for sel in atc4_selection] if atc4_selection else []
+            atc4_filtre = [dict(atc4_options)[code] for code in atc4_codes] if atc4_codes else []
+        else:
+            atc4_filtre = []
+        
+        current_filters['atc4_filtre'] = atc4_filtre
+        
+        # Niveau 5: ATC5 (Substances chimiques)
+        st.markdown("#### 🧪 **Substances Chimiques (ATC5)**")
+        df_temp = get_filtered_dataframe(df, current_filters)
+        atc5_options = get_available_options(df_temp, 'atc5')
+        atc5_display = [f"{code} - {libelle}" for code, libelle in atc5_options]
+        
+        if atc5_options:
+            atc5_selection = st.multiselect(
+                f"Substances chimiques ({len(atc5_options)} disponibles)",
+                options=atc5_display,
+                default=[],
+                key="atc5_multiselect_interdep"
+            )
+            
+            atc5_codes = [sel.split(' - ')[0] for sel in atc5_selection] if atc5_selection else []
+            atc5_filtre = [dict(atc5_options)[code] for code in atc5_codes] if atc5_codes else []
+        else:
+            atc5_filtre = []
+        
+        current_filters['atc5_filtre'] = atc5_filtre
+        
+        # Médicaments spécifiques
+        st.markdown("#### 💊 **Médicaments Spécifiques**")
+        df_temp = get_filtered_dataframe(df, current_filters)
+        medicaments_disponibles = get_available_options(df_temp, 'medicaments')
+        
+        libelle_search = st.text_input(
+            "🔍 Rechercher un médicament",
+            placeholder="Ex: cabometyx, doliprane, ventoline...",
+            key="libelle_search_interdep"
+        )
+        
+        if libelle_search:
+            medicaments_filtered = [m for m in medicaments_disponibles if libelle_search.lower() in m.lower()][:50]
+        else:
+            medicaments_filtered = medicaments_disponibles[:50]
+        
+        if medicaments_filtered:
+            libelle_filtre = st.multiselect(
+                f"Médicaments ({len(medicaments_disponibles)} disponibles)",
+                options=medicaments_filtered,
+                default=[],
+                key="libelle_multiselect_interdep"
+            )
+        else:
+            libelle_filtre = []
+            st.info("👆 Aucun médicament disponible pour cette sélection")
+        
+        current_filters['libelle_filtre'] = libelle_filtre
+        
+        st.markdown("---")
+        
+        # ========== FILTRES GÉOGRAPHIQUES (OÙ) ==========
+        st.markdown("### 🌍 **Localisation Géographique (OÙ)**")
+        st.markdown("*Filtrez par localisation selon les médicaments sélectionnés*")
+        
+        # Villes (filtrées selon les médicaments sélectionnés)
+        st.markdown("#### 🏙️ **Villes**")
+        df_temp = get_filtered_dataframe(df, current_filters)
+        villes_disponibles = get_available_options(df_temp, 'villes')
+        
+        ville_search = st.text_input(
+            "🔍 Rechercher une ville",
+            placeholder="Tapez pour filtrer les villes...",
+            key="ville_search_interdep"
+        )
+        
+        if ville_search:
+            villes_filtered = [v for v in villes_disponibles if ville_search.lower() in v.lower()][:50]
+        else:
+            villes_filtered = villes_disponibles[:50]
+        
+        ville_filtre = st.multiselect(
+            f"Sélectionner les villes ({len(villes_disponibles)} disponibles)",
+            options=villes_filtered,
+            default=[],
+            key="ville_multiselect_interdep"
+        )
+        current_filters['ville_filtre'] = ville_filtre
+        
+        st.markdown("---")
+        
+        # ========== FILTRES ORGANISATIONNELS (QUI) ==========
+        st.markdown("### 🏥 **Établissements de Santé (QUI)**")
+        st.markdown("*Filtrez par établissement selon médicaments et villes sélectionnés*")
+        
+        # Catégories d'établissements
+        st.markdown("#### 🏛️ **Types d'Établissements**")
+        df_temp = get_filtered_dataframe(df, current_filters)
+        categories_disponibles = get_available_options(df_temp, 'categories')
+        
+        categorie_filtre = st.multiselect(
+            f"Types d'établissement ({len(categories_disponibles)} disponibles)",
+            options=categories_disponibles,
+            default=[],
+            key="categorie_multiselect_interdep"
+        )
+        current_filters['categorie_filtre'] = categorie_filtre
+        
+        # Établissements spécifiques
+        st.markdown("#### 🏥 **Établissements Spécifiques**")
+        df_temp = get_filtered_dataframe(df, current_filters)
+        etablissements_disponibles = get_available_options(df_temp, 'etablissements')
+        
+        etablissement_search = st.text_input(
+            "🔍 Rechercher un établissement",
+            placeholder="Tapez pour filtrer les établissements...",
+            key="etablissement_search_interdep"
+        )
+        
+        if etablissement_search:
+            etablissements_filtered = [e for e in etablissements_disponibles if etablissement_search.lower() in e.lower()][:50]
+        else:
+            etablissements_filtered = etablissements_disponibles[:50]
+        
+        etablissement_filtre = st.multiselect(
+            f"Sélectionner les établissements ({len(etablissements_disponibles)} disponibles)",
+            options=etablissements_filtered,
+            default=[],
+            key="etablissement_multiselect_interdep"
+        )
+        current_filters['etablissement_filtre'] = etablissement_filtre
+        
+        st.markdown("---")
+        
+        # ========== PARAMÈTRES D'ANALYSE ==========
+        
+        st.markdown("### 📊 **Paramètres d'analyse**")
+        top_n = st.slider(
+            "🏆 Top N établissements",
+            min_value=5,
+            max_value=100,
+            value=20,
+            step=5,
+            help="Nombre d'établissements dans le classement"
+        )
+        
+        # Filtres avancés
+        with st.expander("⚙️ **Filtres Avancés**"):
+            min_boites = st.number_input(
+                "📦 Minimum de boîtes",
+                min_value=0,
+                value=0,
+                help="Seuil minimum de boîtes délivrées"
+            )
+            
+            show_percentages = st.checkbox(
+                "📈 Afficher les pourcentages",
+                value=True,
+                help="Inclure les pourcentages dans les tableaux"
+            )
+    
+    # 🔧 Application des filtres interdépendants
+    df_filtered = get_filtered_dataframe(df, current_filters)
+    
+    # Appliquer le filtre de boîtes minimum
+    if min_boites > 0:
+        df_filtered = df_filtered[df_filtered['BOITES'] >= min_boites]
+    
+    # 📊 Indicateur de filtrage actif avec nouveau système
+    filters_active = []
+    if current_filters.get('ville_filtre'): filters_active.append(f"Villes: {len(current_filters['ville_filtre'])}")
+    if current_filters.get('categorie_filtre'): filters_active.append(f"Catégories: {len(current_filters['categorie_filtre'])}")
+    if current_filters.get('etablissement_filtre'): filters_active.append(f"Établissements: {len(current_filters['etablissement_filtre'])}")
+    if current_filters.get('atc1_filtre'): filters_active.append(f"ATC1: {len(current_filters['atc1_filtre'])}")
+    if current_filters.get('atc2_filtre'): filters_active.append(f"ATC2: {len(current_filters['atc2_filtre'])}")
+    if current_filters.get('atc3_filtre'): filters_active.append(f"ATC3: {len(current_filters['atc3_filtre'])}")
+    if current_filters.get('atc4_filtre'): filters_active.append(f"ATC4: {len(current_filters['atc4_filtre'])}")
+    if current_filters.get('atc5_filtre'): filters_active.append(f"ATC5: {len(current_filters['atc5_filtre'])}")
+    if current_filters.get('libelle_filtre'): filters_active.append(f"Médicaments: {len(current_filters['libelle_filtre'])}")
+    
+    # 📊 Informations sur le dataset (toujours visible)
     st.markdown(f"""
     <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); 
                 padding: 1.5rem; border-radius: 15px; text-align: center; 
@@ -998,343 +1545,48 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # 🚀 Pré-calcul ultra-rapide de TOUS les filtres
-    filter_options = get_all_filter_options(df)
-    
-    # 🎛️ Sidebar ultra moderne
-    with st.sidebar:
-        st.markdown("## ⚡ **Filtres Ultra-Rapides**")
-        
-        # Hiérarchie pharmaceutique complète selon la structure PHMEV
-        st.markdown("### 💊 **Hiérarchie Pharmaceutique**")
-        st.markdown("*Navigation hiérarchique : ATC1 → ATC2 → ATC3 → ATC4 → ATC5 → CIP13*")
-        
-        # ========== NIVEAU 1: ATC1 (Systèmes thérapeutiques) ==========
-        st.markdown("#### 🧬 **Niveau 1 - Systèmes Anatomiques (ATC1)**")
-        atc1_display = [f"{code} - {libelle}" for code, libelle in filter_options['atc1']]
-        
-        atc1_selection = st.multiselect(
-            "Sélectionner les systèmes anatomiques",
-            options=atc1_display,
-            default=[],
-            help="Première classification : systèmes anatomiques principaux"
-        )
-        
-        # Extraire les codes ATC1 sélectionnés
-        atc1_codes = [sel.split(' - ')[0] for sel in atc1_selection] if atc1_selection else []
-        atc1_filtre = [dict(filter_options['atc1'])[code] for code in atc1_codes] if atc1_codes else []
-        
-        # ========== NIVEAU 2: ATC2 (Groupes thérapeutiques) ==========
-        if atc1_filtre:
-            st.markdown("#### 💉 **Niveau 2 - Groupes Thérapeutiques (ATC2)**")
-            # Filtrer ATC2 basé sur ATC1 sélectionnés
-            df_atc1_filtered = df[df['l_atc1'].isin(atc1_filtre)]
-            atc2_options = sorted(df_atc1_filtered[['atc2', 'L_ATC2']].drop_duplicates().set_index('atc2')['L_ATC2'].dropna().to_dict().items(), key=lambda x: str(x[1]))
-            atc2_display = [f"{code} - {libelle}" for code, libelle in atc2_options]
-            
-            atc2_selection = st.multiselect(
-                "Sélectionner les groupes thérapeutiques",
-                options=atc2_display,
-                default=[],
-                help="Deuxième classification : groupes thérapeutiques principaux"
-            )
-            
-            atc2_codes = [sel.split(' - ')[0] for sel in atc2_selection] if atc2_selection else []
-            atc2_filtre = [dict(atc2_options)[code] for code in atc2_codes] if atc2_codes else []
-        else:
-            atc2_filtre = []
-        
-        # ========== NIVEAU 3: ATC3 (Sous-groupes pharmacologiques) ==========
-        if atc2_filtre:
-            st.markdown("#### 🔬 **Niveau 3 - Sous-groupes Pharmacologiques (ATC3)**")
-            df_atc2_filtered = df[df['L_ATC2'].isin(atc2_filtre)]
-            atc3_options = sorted(df_atc2_filtered[['atc3', 'L_ATC3']].drop_duplicates().set_index('atc3')['L_ATC3'].dropna().to_dict().items())
-            atc3_display = [f"{code} - {libelle}" for code, libelle in atc3_options]
-            
-            atc3_selection = st.multiselect(
-                "Sélectionner les sous-groupes pharmacologiques",
-                options=atc3_display,
-                default=[],
-                help="Troisième classification : sous-groupes pharmacologiques"
-            )
-            
-            atc3_codes = [sel.split(' - ')[0] for sel in atc3_selection] if atc3_selection else []
-            atc3_filtre = [dict(atc3_options)[code] for code in atc3_codes] if atc3_codes else []
-        else:
-            atc3_filtre = []
-        
-        # ========== NIVEAU 4: ATC4 (Groupes chimiques) ==========
-        if atc3_filtre:
-            st.markdown("#### ⚗️ **Niveau 4 - Groupes Chimiques (ATC4)**")
-            df_atc3_filtered = df[df['L_ATC3'].isin(atc3_filtre)]
-            atc4_options = sorted(df_atc3_filtered[['atc4', 'L_ATC4']].drop_duplicates().set_index('atc4')['L_ATC4'].dropna().to_dict().items())
-            atc4_display = [f"{code} - {libelle}" for code, libelle in atc4_options]
-            
-            atc4_selection = st.multiselect(
-                "Sélectionner les groupes chimiques",
-                options=atc4_display,
-                default=[],
-                help="Quatrième classification : groupes chimiques/thérapeutiques"
-            )
-            
-            atc4_codes = [sel.split(' - ')[0] for sel in atc4_selection] if atc4_selection else []
-            atc4_filtre = [dict(atc4_options)[code] for code in atc4_codes] if atc4_codes else []
-        else:
-            atc4_filtre = []
-        
-        # ========== NIVEAU 5: ATC5 (Substances chimiques) ==========
-        if atc4_filtre:
-            st.markdown("#### 🧪 **Niveau 5 - Substances Chimiques (ATC5)**")
-            df_atc4_filtered = df[df['L_ATC4'].isin(atc4_filtre)]
-            atc5_options = sorted(df_atc4_filtered[['ATC5', 'L_ATC5']].drop_duplicates().set_index('ATC5')['L_ATC5'].dropna().to_dict().items())
-            
-            # Filtrer les "Non restitué"
-            atc5_options_clean = [(code, libelle) for code, libelle in atc5_options if libelle != 'Non restitué']
-            atc5_display = [f"{code} - {libelle}" for code, libelle in atc5_options_clean]
-            
-            if atc5_display:
-                atc5_selection = st.multiselect(
-                    "Sélectionner les substances chimiques",
-                    options=atc5_display,
-                    default=[],
-                    help="Cinquième classification : substances chimiques spécifiques"
-                )
-                
-                atc5_codes = [sel.split(' - ')[0] for sel in atc5_selection] if atc5_selection else []
-                atc5_filtre = [dict(atc5_options_clean)[code] for code in atc5_codes] if atc5_codes else []
-            else:
-                st.info("ℹ️ Données ATC5 anonymisées à ce niveau")
-                atc5_filtre = []
-        else:
-            atc5_filtre = []
-        
-        # ========== NIVEAU 6: CIP13 (Codes et libellés produits) ==========
-        st.markdown("#### 📋 **Niveau 6 - Produits Spécifiques (CIP13)**")
-        
-        # Déterminer le dataset filtré pour les CIP
-        if atc5_filtre:
-            df_for_cip = df[df['L_ATC5'].isin(atc5_filtre)]
-        elif atc4_filtre:
-            df_for_cip = df[df['L_ATC4'].isin(atc4_filtre)]
-        elif atc3_filtre:
-            df_for_cip = df[df['L_ATC3'].isin(atc3_filtre)]
-        elif atc2_filtre:
-            df_for_cip = df[df['L_ATC2'].isin(atc2_filtre)]
-        elif atc1_filtre:
-            df_for_cip = df[df['l_atc1'].isin(atc1_filtre)]
-        else:
-            df_for_cip = df
-        
-        # ⚡ Recherche ultra-rapide des médicaments avec aperçu
-        libelle_search = st.text_input(
-            "🔍 Rechercher un médicament",
-            placeholder="Ex: cabometyx, doliprane, ventoline, omeprazole...",
-            help="Recherche instantanée dans les noms de médicaments",
-            key="libelle_search"
-        )
-        
-        # Filtrage ultra-rapide avec l'index pré-calculé
-        if libelle_search:
-            libelles_filtered = ultra_fast_search(filter_options['cip_search_index'], libelle_search, max_results=100)
-            
-            if libelles_filtered:
-                st.success(f"⚡ {len(libelles_filtered)} médicaments trouvés instantanément pour '{libelle_search}'")
-                # Aperçu des premiers résultats
-                if len(libelles_filtered) <= 10:
-                    st.info("📋 **Résultats trouvés :** " + " • ".join(libelles_filtered[:10]))
-                else:
-                    st.info("📋 **Premiers résultats :** " + " • ".join(libelles_filtered[:5]) + f" ... (+{len(libelles_filtered)-5} autres)")
-            else:
-                st.warning(f"❌ Aucun médicament trouvé pour '{libelle_search}' - Essayez 'cabometyx', 'doliprane', 'ventoline', 'omeprazole'...")
-                libelles_filtered = []
-        else:
-            libelles_filtered = filter_options['cip_libelles'][:100]
-            if libelles_filtered:
-                st.info(f"💡 {len(filter_options['cip_libelles'])} médicaments disponibles (affichage des 100 premiers)")
-        
-        libelle_filtre = st.multiselect(
-            "🏷️ Sélectionner les médicaments",
-            options=libelles_filtered,
-            default=[],
-            help="Sélectionnez les médicaments spécifiques à analyser"
-        )
-        
-        # Codes CIP correspondants (optionnel)
-        if libelle_filtre:
-            st.markdown("##### 📋 **Codes CIP correspondants**")
-            df_cip_selected = df_for_cip[df_for_cip['libelle_cip'].isin(libelle_filtre)]
-            cip_options = sorted(df_cip_selected[['code_cip', 'libelle_cip']].drop_duplicates().values.tolist())
-            cip_display = [f"{code} - {libelle}" for code, libelle in cip_options]
-            
-            cip_filtre_display = st.multiselect(
-                "Codes CIP spécifiques (optionnel)",
-                options=cip_display,
-                default=[],
-                help="Affinage par codes CIP si nécessaire"
-            )
-            
-            cip_filtre = [sel.split(' - ')[0] for sel in cip_filtre_display] if cip_filtre_display else []
-        else:
-            cip_filtre = []
-        
-        st.markdown("---")
-        
-        # ⚡ Filtres ultra-rapides avec icônes
-        st.markdown("### 🏥 **Établissements**")
-        
-        etablissement_search = st.text_input(
-            "🔍 Rechercher un établissement",
-            placeholder="Tapez pour filtrer les établissements...",
-            help="Recherche instantanée dans les établissements",
-            key="etablissement_search"
-        )
-        
-        # Filtrage ultra-rapide avec l'index pré-calculé
-        if etablissement_search:
-            etablissements_filtered = ultra_fast_search(filter_options['etablissements_index'], etablissement_search, max_results=100)
-            if etablissements_filtered:
-                st.success(f"⚡ {len(etablissements_filtered)} établissements trouvés instantanément")
-                # Aperçu des premiers résultats
-                if len(etablissements_filtered) <= 5:
-                    st.info("🏥 **Résultats :** " + " • ".join(etablissements_filtered[:5]))
-                else:
-                    st.info("🏥 **Premiers résultats :** " + " • ".join(etablissements_filtered[:3]) + f" ... (+{len(etablissements_filtered)-3} autres)")
-            else:
-                st.warning(f"❌ Aucun établissement trouvé pour '{etablissement_search}'")
-                etablissements_filtered = []
-        else:
-            etablissements_filtered = filter_options['etablissements'][:100]
-            if etablissements_filtered:
-                st.info(f"💡 {len(filter_options['etablissements'])} établissements disponibles (affichage des 100 premiers)")
-        
-        etablissement_filtre = st.multiselect(
-            "Sélectionner les établissements",
-            options=etablissements_filtered,
-            default=[],
-            help="Choisissez un ou plusieurs établissements"
-        )
-        
-        st.markdown("### 🏛️ **Catégories**")
-        categorie_filtre = st.multiselect(
-            "Types d'établissement",
-            options=filter_options['categories'],
-            default=[],
-            help="Filtrer par catégorie juridique"
-        )
-        
-        st.markdown("### 🌍 **Géographie**")
-        
-        ville_search = st.text_input(
-            "🔍 Rechercher une ville",
-            placeholder="Tapez pour filtrer les villes...",
-            help="Recherche instantanée dans les villes",
-            key="ville_search"
-        )
-        
-        # Filtrage ultra-rapide avec l'index pré-calculé
-        if ville_search:
-            villes_filtered = ultra_fast_search(filter_options['villes_index'], ville_search, max_results=100)
-            if villes_filtered:
-                st.success(f"⚡ {len(villes_filtered)} villes trouvées instantanément")
-                # Aperçu des premiers résultats
-                if len(villes_filtered) <= 8:
-                    st.info("🌍 **Résultats :** " + " • ".join(villes_filtered[:8]))
-                else:
-                    st.info("🌍 **Premiers résultats :** " + " • ".join(villes_filtered[:5]) + f" ... (+{len(villes_filtered)-5} autres)")
-            else:
-                st.warning(f"❌ Aucune ville trouvée pour '{ville_search}'")
-                villes_filtered = []
-        else:
-            villes_filtered = filter_options['villes'][:100]
-            
-        ville_filtre = st.multiselect(
-            "Sélectionner les villes",
-            options=villes_filtered,
-            default=[],
-            help="Filtrage géographique"
-        )
-        
-        st.markdown("### 📊 **Paramètres d'analyse**")
-        top_n = st.slider(
-            "🏆 Top N établissements",
-            min_value=5,
-            max_value=100,
-            value=20,
-            step=5,
-            help="Nombre d'établissements dans le classement"
-        )
-        
-        # Filtres avancés
-        with st.expander("⚙️ **Filtres Avancés**"):
-            min_boites = st.number_input(
-                "📦 Minimum de boîtes",
-                min_value=0,
-                value=0,
-                help="Seuil minimum de boîtes délivrées"
-            )
-            
-            show_percentages = st.checkbox(
-                "📈 Afficher les pourcentages",
-                value=True,
-                help="Inclure les pourcentages dans les tableaux"
-            )
-    
-    # 🔧 Application des filtres (éviter df.copy() pour économiser la mémoire)
-    df_filtered = df
-    
-    # Filtres ATC hiérarchiques (molécules/produits)
-    if atc1_filtre:
-        df_filtered = df_filtered[df_filtered['l_atc1'].isin(atc1_filtre)]
-    
-    if atc2_filtre:
-        df_filtered = df_filtered[df_filtered['L_ATC2'].isin(atc2_filtre)]
-    
-    if atc3_filtre:
-        df_filtered = df_filtered[df_filtered['L_ATC3'].isin(atc3_filtre)]
-    
-    if atc4_filtre:
-        df_filtered = df_filtered[df_filtered['L_ATC4'].isin(atc4_filtre)]
-    
-    if atc5_filtre:
-        df_filtered = df_filtered[df_filtered['L_ATC5'].isin(atc5_filtre)]
-    
-    # Filtres CIP
-    if cip_filtre:
-        df_filtered = df_filtered[df_filtered['code_cip'].isin(cip_filtre)]
-    
-    if libelle_filtre:
-        df_filtered = df_filtered[df_filtered['libelle_cip'].isin(libelle_filtre)]
-    
-    # Autres filtres
-    if etablissement_filtre:
-        df_filtered = df_filtered[df_filtered['etablissement'].isin(etablissement_filtre)]
-    
-    if categorie_filtre:
-        df_filtered = df_filtered[df_filtered['categorie'].isin(categorie_filtre)]
-    
-    if ville_filtre:
-        df_filtered = df_filtered[df_filtered['ville'].isin(ville_filtre)]
-    
-    if min_boites > 0:
-        df_filtered = df_filtered[df_filtered['BOITES'] >= min_boites]
-    
-    # 📊 Indicateur de filtrage actif
-    filters_active = []
-    if atc1_filtre: filters_active.append(f"ATC1: {len(atc1_filtre)}")
-    if atc2_filtre: filters_active.append(f"ATC2: {len(atc2_filtre)}")
-    if atc3_filtre: filters_active.append(f"ATC3: {len(atc3_filtre)}")
-    if atc4_filtre: filters_active.append(f"ATC4: {len(atc4_filtre)}")
-    if atc5_filtre: filters_active.append(f"ATC5: {len(atc5_filtre)}")
-    if libelle_filtre: filters_active.append(f"Médicaments: {len(libelle_filtre)}")
-    if cip_filtre: filters_active.append(f"CIP: {len(cip_filtre)}")
-    if etablissement_filtre: filters_active.append(f"Établissements: {len(etablissement_filtre)}")
-    if ville_filtre: filters_active.append(f"Villes: {len(ville_filtre)}")
-    
+    # Affichage des filtres actifs seulement s'il y en a
     if filters_active:
         st.markdown(f"""
-        <div class="info-card">
-            <strong>🎯 Filtres actifs:</strong> {" | ".join(filters_active)}<br>
-            <strong>📊 Données filtrées:</strong> {len(df_filtered):,} lignes sur {len(df):,} ({len(df_filtered)/len(df)*100:.1f}%)
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    color: white; padding: 1.5rem; border-radius: 15px; 
+                    margin: 1rem 0; box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+                    border: 2px solid rgba(255,255,255,0.2);">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                <span style="font-size: 2rem;">🎯</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700;">FILTRES ACTIFS</h3>
+                    <div style="font-size: 1rem; opacity: 0.9; margin-top: 0.3rem;">
+                        {" | ".join(filters_active)}
+                    </div>
+                </div>
+            </div>
+            <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.5rem;">📊</span>
+                        <div>
+                            <div style="font-size: 1.8rem; font-weight: 700;">
+                                {len(df_filtered):,}
+                            </div>
+                            <div style="font-size: 0.9rem; opacity: 0.8;">
+                                Lignes filtrées
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.5rem;">📈</span>
+                        <div>
+                            <div style="font-size: 1.8rem; font-weight: 700;">
+                                {len(df_filtered)/len(df)*100:.1f}%
+                            </div>
+                            <div style="font-size: 0.9rem; opacity: 0.8;">
+                                du dataset total
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -1490,22 +1742,22 @@ def main():
     }
     
     # Ajouter les colonnes ATC si nécessaires
-    if atc1_filtre or atc2_filtre or atc3_filtre or atc4_filtre or atc5_filtre:
-        if atc5_filtre and 'L_ATC5' in df_top.columns:
+    if any([current_filters.get('atc1_filtre'), current_filters.get('atc2_filtre'), 
+            current_filters.get('atc3_filtre'), current_filters.get('atc4_filtre'), 
+            current_filters.get('atc5_filtre')]):
+        if current_filters.get('atc5_filtre') and 'L_ATC5' in df_top.columns:
             df_display_data['L_ATC5'] = df_top['L_ATC5'].tolist()
-        elif atc4_filtre and 'L_ATC4' in df_top.columns:
+        elif current_filters.get('atc4_filtre') and 'L_ATC4' in df_top.columns:
             df_display_data['L_ATC4'] = df_top['L_ATC4'].tolist()
-        elif atc3_filtre and 'L_ATC3' in df_top.columns:
+        elif current_filters.get('atc3_filtre') and 'L_ATC3' in df_top.columns:
             df_display_data['L_ATC3'] = df_top['L_ATC3'].tolist()
-        elif atc2_filtre and 'L_ATC2' in df_top.columns:
+        elif current_filters.get('atc2_filtre') and 'L_ATC2' in df_top.columns:
             df_display_data['L_ATC2'] = df_top['L_ATC2'].tolist()
-        elif atc1_filtre and 'l_atc1' in df_top.columns:
+        elif current_filters.get('atc1_filtre') and 'l_atc1' in df_top.columns:
             df_display_data['l_atc1'] = df_top['l_atc1'].tolist()
     
     # Ajouter les colonnes CIP si filtrées
-    if cip_filtre and 'code_cip' in df_top.columns:
-        df_display_data['code_cip'] = df_top['code_cip'].tolist()
-    if libelle_filtre and 'libelle_cip' in df_top.columns:
+    if current_filters.get('libelle_filtre') and 'libelle_cip' in df_top.columns:
         df_display_data['libelle_cip'] = df_top['libelle_cip'].tolist()
         
     df_display = pd.DataFrame(df_display_data)
@@ -1681,7 +1933,7 @@ def main():
     # Section "📊 Systèmes Thérapeutiques Sélectionnés" supprimée sur demande utilisateur
     
     # 📋 Analyse des codes CIP si filtrés
-    if cip_filtre or libelle_filtre:
+    if current_filters.get('libelle_filtre'):
         st.markdown('<h2 class="section-header">📋 Analyse des Codes CIP</h2>', unsafe_allow_html=True)
         
         # Analyse par code CIP
