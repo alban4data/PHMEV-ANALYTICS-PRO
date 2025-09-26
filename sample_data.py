@@ -44,6 +44,9 @@ def create_sample_data():
         rem_base = boites * prix_unitaire
         bse_base = rem_base * np.random.uniform(1.0, 1.3)
         
+        etb_name = np.random.choice(etablissements)
+        medicament = np.random.choice(medicaments)
+        
         row = {
             'atc1': atc1_codes[atc1_idx],
             'l_atc1': atc1_labels[atc1_idx],
@@ -54,24 +57,64 @@ def create_sample_data():
             'atc4': f"{atc1_codes[atc1_idx]}0{np.random.randint(1,9)}A{np.random.randint(1,9)}",
             'L_ATC4': f"Sous-groupe thérapeutique",
             'ATC5': f"{atc1_codes[atc1_idx]}0{np.random.randint(1,9)}A{np.random.randint(1,9)}{np.random.randint(1,9)}",
-            'L_ATC5': np.random.choice(medicaments),
+            'L_ATC5': medicament,
             'CIP13': f"34009{np.random.randint(100000000, 999999999)}",
-            'l_cip13': np.random.choice(medicaments),
+            'l_cip13': medicament,
             'BOITES': boites,
             'REM': f"{rem_base:.2f}".replace('.', ','),  # Format français
             'BSE': f"{bse_base:.2f}".replace('.', ','),  # Format français
-            'nom_etb': np.random.choice(etablissements),
-            'raison_sociale_etb': np.random.choice(etablissements),
+            'nom_etb': etb_name,
+            'raison_sociale_etb': etb_name,
             'nom_ville': np.random.choice(villes),
             'categorie_jur': np.random.choice(categories),
             'region_etb': np.random.randint(1, 13),
             'TOP_GEN': np.random.choice(['OUI', 'NON']),
             'GEN_NUM': np.random.randint(1, 5),
-            'age': np.random.randint(18, 90)
+            'age': np.random.randint(18, 90),
+            # Colonnes dérivées nécessaires pour l'application
+            'etablissement': etb_name,
+            'medicament': medicament,
+            'categorie': np.random.choice(categories),
+            'ville': np.random.choice(villes),
+            'region': np.random.randint(1, 13),
+            'code_cip': f"34009{np.random.randint(100000000, 999999999)}",
+            'libelle_cip': medicament
         }
         data.append(row)
     
-    return pd.DataFrame(data)
+    df = pd.DataFrame(data)
+    
+    # Conversion des colonnes financières françaises en numériques
+    def convert_french_decimal(series):
+        """Convertit les décimaux français (virgule) en float"""
+        cleaned = series.astype(str).str.strip()
+        cleaned = cleaned.replace(['', 'nan', 'NaN', 'NULL', 'null'], pd.NA)
+        
+        def clean_french_number(x):
+            if pd.isna(x) or x == 'nan':
+                return pd.NA
+            x = str(x).strip()
+            if ',' in x:
+                parts = x.split(',')
+                if len(parts) == 2:
+                    entiere = parts[0].replace('.', '')
+                    decimale = parts[1]
+                    return f"{entiere}.{decimale}"
+            return x.replace('.', '') if '.' in x else x
+        
+        cleaned = cleaned.apply(clean_french_number)
+        return pd.to_numeric(cleaned, errors='coerce')
+    
+    # Appliquer les conversions
+    df['BOITES'] = pd.to_numeric(df['BOITES'], errors='coerce')
+    df['REM'] = convert_french_decimal(df['REM'])
+    df['BSE'] = convert_french_decimal(df['BSE'])
+    
+    # Calculs des métriques dérivées
+    df['cout_par_boite'] = np.where(df['BOITES'] > 0, df['REM'] / df['BOITES'], 0)
+    df['taux_remboursement'] = np.where(df['BSE'] > 0, (df['REM'] / df['BSE'] * 100).round(2), 0)
+    
+    return df
 
 def save_sample_data():
     """Sauvegarde les données d'exemple"""
