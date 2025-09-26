@@ -582,7 +582,8 @@ def load_data_background(nrows=None):
     import os
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # Priorité 1: Parquet échantillon (optimisé pour Streamlit Cloud)
+    # Priorité 1: Parquet optimisé (optimisé pour Streamlit Cloud)
+    parquet_optimized_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_optimized.parquet')
     parquet_sample_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_sample_10k.parquet')
     parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
     csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
@@ -595,13 +596,21 @@ def load_data_background(nrows=None):
         not os.path.exists(parquet_path)  # Si pas de Parquet local, on est probablement sur le cloud
     )
     
-    # Priorité 1: Échantillon Parquet (parfait pour Streamlit Cloud)
+    # Priorité 1: Échantillon Parquet (contient les 3M lignes pour Streamlit Cloud)
     if os.path.exists(parquet_sample_path):
         try:
             df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
             return df
         except Exception as e:
             st.warning(f"⚠️ Erreur avec l'échantillon Parquet: {e}")
+    
+    # Priorité 2: Parquet Optimisé (fallback)
+    elif os.path.exists(parquet_optimized_path):
+        try:
+            df = pd.read_parquet(parquet_optimized_path, engine='pyarrow')
+            return df
+        except Exception as e:
+            st.warning(f"⚠️ Erreur avec le fichier optimisé: {e}")
     
     # Priorité 2: Parquet complet (en local)
     elif os.path.exists(parquet_path):
@@ -787,7 +796,8 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
         import os
         script_dir = os.path.dirname(os.path.abspath(__file__))
         
-        # Priorité 1: Parquet échantillon (optimisé pour Streamlit Cloud)
+        # Priorité 1: Parquet optimisé (optimisé pour Streamlit Cloud)
+        parquet_optimized_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_optimized.parquet')
         parquet_sample_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_sample_10k.parquet')
         parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
         csv_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.CSV')
@@ -800,12 +810,24 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
             not os.path.exists(parquet_path)  # Si pas de Parquet local, on est probablement sur le cloud
         )
         
-        # Priorité 1: Échantillon Parquet (parfait pour Streamlit Cloud)
+        # Priorité 1: Échantillon Parquet (contient les 3M lignes pour Streamlit Cloud)
         if os.path.exists(parquet_sample_path):
-            status_text.text("🚀 Chargement optimisé...")
+            status_text.text("🚀 Chargement des 3M lignes...")
             progress_bar.progress(70)
             try:
                 df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
+                progress_bar.progress(100)
+                st.session_state.phmev_data_cached = df
+                return df
+            except Exception as e:
+                st.warning(f"⚠️ Erreur avec l'échantillon: {e}")
+        
+        # Priorité 2: Parquet Optimisé (fallback)
+        elif os.path.exists(parquet_optimized_path):
+            status_text.text("🚀 Chargement optimisé...")
+            progress_bar.progress(70)
+            try:
+                df = pd.read_parquet(parquet_optimized_path, engine='pyarrow')
                 progress_bar.progress(100)
                 st.session_state.phmev_data_cached = df
                 
@@ -1520,17 +1542,6 @@ def main():
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 0.8rem;">
-                <span style="font-size: 2rem;">📊</span>
-                <div>
-                    <div style="font-weight: 700; color: white; font-size: 1.3rem;">
-                        {len(df):,} lignes
-                    </div>
-                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px;">
-                        Dataset analysé
-                    </div>
-                </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.8rem;">
                 <span style="font-size: 2rem;">🏛️</span>
                 <div>
                     <div style="font-weight: 700; color: white; font-size: 1.3rem;">
@@ -1582,6 +1593,17 @@ def main():
                             </div>
                             <div style="font-size: 0.9rem; opacity: 0.8;">
                                 du dataset total
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.5rem;">🗂️</span>
+                        <div>
+                            <div style="font-size: 1.8rem; font-weight: 700;">
+                                3,504,612 lignes
+                            </div>
+                            <div style="font-size: 0.9rem; opacity: 0.8;">
+                                Dataset analysé
                             </div>
                         </div>
                     </div>
