@@ -523,7 +523,8 @@ def load_data_background(nrows=None):
     if os.path.exists(parquet_path):
         st.info("🚀 Chargement ultra-rapide depuis le fichier Parquet optimisé")
         try:
-            df = pd.read_parquet(parquet_path)
+            import pyarrow.parquet as pq
+            df = pd.read_parquet(parquet_path, engine='pyarrow')
             
             # Vérifier si les colonnes dérivées existent déjà
             if 'etablissement' not in df.columns:
@@ -664,7 +665,8 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
             status_text.text("🚀 Chargement ultra-rapide depuis Parquet...")
             progress_bar.progress(50)
             try:
-                df = pd.read_parquet(parquet_path)
+                import pyarrow.parquet as pq
+                df = pd.read_parquet(parquet_path, engine='pyarrow')
                 
                 # Ajouter les colonnes dérivées si nécessaires
                 if 'etablissement' not in df.columns:
