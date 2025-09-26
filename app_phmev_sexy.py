@@ -871,7 +871,9 @@ def initialize_app():
                     if df is not None:
                         st.session_state.phmev_data_cached = df
                         # Message adaptatif selon le nombre de lignes
-                        if len(df) >= 1000000:
+                        if len(df) >= 3000000:
+                            st.success(f"✅ Dataset complet optimisé chargé ! ({len(df):,} lignes)")
+                        elif len(df) >= 1000000:
                             st.success(f"✅ Dataset complet chargé ! ({len(df):,} lignes)")
                         elif len(df) >= 10000:
                             st.success(f"✅ Échantillon représentatif chargé ! ({len(df):,} lignes)")
