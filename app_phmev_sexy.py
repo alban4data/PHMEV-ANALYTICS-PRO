@@ -527,18 +527,56 @@ def load_data_background(nrows=None):
         not os.path.exists(parquet_path)  # Si pas de Parquet local, on est probablement sur le cloud
     )
     
-    # DEBUG - Afficher les informations d'environnement
-    st.info(f"🔍 DEBUG - Parquet existe: {os.path.exists(parquet_path)}")
-    st.info(f"🔍 DEBUG - CSV existe: {os.path.exists(csv_path)}")
-    st.info(f"🔍 DEBUG - Hostname: {os.environ.get('HOSTNAME', 'Non défini')}")
-    
-    # FORCER les données d'exemple si pas de fichier local (= Streamlit Cloud)
+    # Option 1: Charger depuis Google Drive (Streamlit Cloud)
     if not os.path.exists(parquet_path) and not os.path.exists(csv_path):
         try:
-            from sample_data import create_sample_data
-            st.success("☁️ Streamlit Cloud détecté - Utilisation de données d'exemple optimisées pour la démonstration")
-            st.info("💡 Les données d'exemple contiennent 1000 lignes représentatives pour tester toutes les fonctionnalités")
-            return create_sample_data()
+            st.info("☁️ Chargement des données depuis Google Drive...")
+            
+            # URL Google Drive (à remplacer par votre lien)
+            # Pour obtenir le lien : Partager le fichier → Copier le lien → Remplacer 'view' par 'export'
+            # Exemple: https://drive.google.com/file/d/VOTRE_ID_FICHIER/view?usp=sharing
+            # Devient: https://drive.google.com/uc?export=download&id=VOTRE_ID_FICHIER
+            
+            drive_url = "https://drive.google.com/uc?export=download&id=16gIMMzbqIHG65DNlV9RYps1NzlHsulfM"
+            
+            # Tentative de chargement depuis Google Drive
+            try:
+                df = pd.read_parquet(drive_url, engine='pyarrow')
+                st.success("🚀 Données chargées depuis Google Drive avec succès !")
+                
+                # Vérifier si les colonnes dérivées existent déjà
+                if 'etablissement' not in df.columns:
+                    st.info("🔧 Création des colonnes enrichies...")
+                    # Création de colonnes enrichies avec gestion sécurisée des NaN
+                    df['etablissement'] = df['nom_etb'].astype(str).fillna('Non spécifié')
+                    if 'raison_sociale_etb' in df.columns:
+                        df['etablissement'] = df['etablissement'].where(
+                            df['etablissement'] != 'nan', 
+                            df['raison_sociale_etb'].astype(str)
+                        )
+                    
+                    df['medicament'] = df['L_ATC5'].astype(str).fillna('Non spécifié')
+                    df['categorie'] = df['categorie_jur'].astype(str).fillna('Non spécifiée')
+                    df['ville'] = df['nom_ville'].astype(str).fillna('Non spécifiée')
+                    df['region'] = df['region_etb'].fillna(0)
+                    df['code_cip'] = df['CIP13'].astype(str)
+                    df['libelle_cip'] = df['l_cip13'].fillna('Non spécifié')
+                    
+                    # Calculs dérivés
+                    df['cout_par_boite'] = np.where(df['BOITES'] > 0, df['REM'] / df['BOITES'], 0)
+                    df['taux_remboursement'] = np.where(df['REM'] > 0, (df['BSE'] / df['REM']) * 100, 0)
+                
+                return df
+                
+            except Exception as drive_error:
+                st.warning(f"⚠️ Impossible de charger depuis Google Drive: {drive_error}")
+                st.info("🔄 Fallback vers les données d'exemple...")
+                
+                # Fallback vers les données d'exemple
+                from sample_data import create_sample_data
+                st.info("💡 Les données d'exemple contiennent 1000 lignes représentatives pour tester toutes les fonctionnalités")
+                return create_sample_data()
+                
         except ImportError as e:
             st.error(f"❌ Impossible de charger les données d'exemple: {e}")
             return None
@@ -692,25 +730,76 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
             not os.path.exists(parquet_path)  # Si pas de Parquet local, on est probablement sur le cloud
         )
         
-        # FORCER les données d'exemple si pas de fichier local (= Streamlit Cloud)
+        # Charger depuis Google Drive si pas de fichier local (= Streamlit Cloud)
         if not os.path.exists(parquet_path) and not os.path.exists(csv_path):
             try:
-                from sample_data import create_sample_data
-                status_text.text("☁️ Streamlit Cloud détecté - Chargement des données d'exemple...")
-                progress_bar.progress(100)
-                st.info("☁️ Streamlit Cloud détecté - Utilisation de données d'exemple optimisées pour la démonstration")
-                st.info("💡 Les données d'exemple contiennent 1000 lignes représentatives pour tester toutes les fonctionnalités")
-                df = create_sample_data()
-                st.session_state.phmev_data_cached = df
+                status_text.text("☁️ Chargement des données depuis Google Drive...")
+                progress_bar.progress(30)
                 
-                # Nettoyage
-                import time, gc
-                time.sleep(1)
-                progress_bar.empty()
-                status_text.empty()
-                gc.collect()
+                # URL Google Drive avec votre ID
+                drive_url = "https://drive.google.com/uc?export=download&id=16gIMMzbqIHG65DNlV9RYps1NzlHsulfM"
                 
-                return df
+                # Tentative de chargement depuis Google Drive
+                try:
+                    df = pd.read_parquet(drive_url, engine='pyarrow')
+                    progress_bar.progress(70)
+                    status_text.text("🔧 Création des colonnes enrichies...")
+                    
+                    # Vérifier si les colonnes dérivées existent déjà
+                    if 'etablissement' not in df.columns:
+                        # Création de colonnes enrichies
+                        df['etablissement'] = df['nom_etb'].astype(str).fillna('Non spécifié')
+                        if 'raison_sociale_etb' in df.columns:
+                            df['etablissement'] = df['etablissement'].where(
+                                df['etablissement'] != 'nan', 
+                                df['raison_sociale_etb'].astype(str)
+                            )
+                        
+                        df['medicament'] = df['L_ATC5'].astype(str).fillna('Non spécifié')
+                        df['categorie'] = df['categorie_jur'].astype(str).fillna('Non spécifiée')
+                        df['ville'] = df['nom_ville'].astype(str).fillna('Non spécifiée')
+                        df['region'] = df['region_etb'].fillna(0)
+                        df['code_cip'] = df['CIP13'].astype(str)
+                        df['libelle_cip'] = df['l_cip13'].fillna('Non spécifié')
+                        
+                        # Calculs dérivés
+                        df['cout_par_boite'] = np.where(df['BOITES'] > 0, df['REM'] / df['BOITES'], 0)
+                        df['taux_remboursement'] = np.where(df['REM'] > 0, (df['BSE'] / df['REM']) * 100, 0)
+                    
+                    progress_bar.progress(100)
+                    status_text.text("✅ Données Google Drive chargées avec succès !")
+                    st.session_state.phmev_data_cached = df
+                    
+                    # Nettoyage
+                    import time, gc
+                    time.sleep(1)
+                    progress_bar.empty()
+                    status_text.empty()
+                    gc.collect()
+                    
+                    return df
+                    
+                except Exception as drive_error:
+                    st.warning(f"⚠️ Impossible de charger depuis Google Drive: {drive_error}")
+                    status_text.text("🔄 Fallback vers les données d'exemple...")
+                    
+                    # Fallback vers les données d'exemple
+                    from sample_data import create_sample_data
+                    df = create_sample_data()
+                    st.session_state.phmev_data_cached = df
+                    
+                    progress_bar.progress(100)
+                    status_text.text("✅ Données d'exemple chargées !")
+                    
+                    # Nettoyage
+                    import time, gc
+                    time.sleep(1)
+                    progress_bar.empty()
+                    status_text.empty()
+                    gc.collect()
+                    
+                    return df
+                    
             except ImportError:
                 st.error("❌ Impossible de charger les données d'exemple")
                 return None
