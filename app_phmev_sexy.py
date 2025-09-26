@@ -1086,11 +1086,17 @@ def initialize_app():
         # Pré-chargement en session uniquement (sans cache disque)
         try:
             if 'phmev_data_cached' not in st.session_state:
-                with st.spinner("🚀 Chargement initial des données (dataset complet)..."):
+                with st.spinner("🚀 Chargement initial des données optimisées..."):
                     df = load_data_background()
                     if df is not None:
                         st.session_state.phmev_data_cached = df
-                        st.success("✅ Toutes les données chargées ! Application prête.")
+                        # Message adaptatif selon le nombre de lignes
+                        if len(df) >= 1000000:
+                            st.success(f"✅ Dataset complet chargé ! ({len(df):,} lignes)")
+                        elif len(df) >= 10000:
+                            st.success(f"✅ Échantillon représentatif chargé ! ({len(df):,} lignes)")
+                        else:
+                            st.success(f"✅ Données de démonstration chargées ! ({len(df):,} lignes)")
             st.session_state.data_preloaded = True
         except Exception as e:
             st.warning(f"⚠️ Chargement différé : {e}")
