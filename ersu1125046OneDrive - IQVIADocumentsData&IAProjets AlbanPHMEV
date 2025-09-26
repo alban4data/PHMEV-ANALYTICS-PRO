@@ -1,7 +1,0 @@
-[33mcommit 01c09e86ccf7a35e3a0e3ae3b5933ffb9880a043[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
-Author: Duruisseau <alban.duruisseau@iqvia.com>
-Date:   Fri Sep 26 12:59:03 2025 +0200
-
-    Fix: Suppression du doublon des informations dataset - Interface optimisée
-
-app_phmev_sexy.py
