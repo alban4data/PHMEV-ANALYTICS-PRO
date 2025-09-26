@@ -95,16 +95,27 @@ def format_currency(value):
 @st.cache_resource
 def init_bigquery():
     try:
+        # Priorité 1: Utiliser les secrets Streamlit Cloud
         if "gcp_service_account" in st.secrets:
-            credentials_info = st.secrets["gcp_service_account"]
+            credentials_info = dict(st.secrets["gcp_service_account"])
             credentials = service_account.Credentials.from_service_account_info(credentials_info)
             client = bigquery.Client(credentials=credentials, project=credentials_info["project_id"])
             return client, credentials_info["project_id"]
-        else:
-            client = bigquery.Client(project='test-db-473321')
+        
+        # Priorité 2: Fichier local (développement)
+        import os
+        if os.path.exists('test-db-473321-aed58eeb55a8.json'):
+            credentials = service_account.Credentials.from_service_account_file('test-db-473321-aed58eeb55a8.json')
+            client = bigquery.Client(credentials=credentials, project='test-db-473321')
             return client, 'test-db-473321'
+        
+        # Fallback: Erreur explicite
+        st.error("❌ Aucune configuration BigQuery trouvée. Veuillez configurer les secrets dans Streamlit Cloud.")
+        return None, None
+        
     except Exception as e:
         st.error(f"❌ Erreur de connexion BigQuery: {e}")
+        st.error("💡 Vérifiez la configuration des secrets dans Streamlit Cloud")
         return None, None
 
 @st.cache_data(ttl=86400)  # Cache 24 heures
@@ -116,17 +127,26 @@ def get_base_filter_options():
     from datetime import datetime, timedelta
     
     try:
-        # Vérifier si le cache pickle existe et est récent (moins de 24h)
+        # PRIORITÉ 1: Cache intégré (pour Streamlit Cloud)
+        try:
+            from filter_cache_embedded import get_embedded_cache
+            options = get_embedded_cache()
+            st.success(f"🚀 Cache intégré chargé ! ({len(options.get('medicaments', []))} médicaments disponibles)")
+            return options
+        except ImportError:
+            pass
+        
+        # PRIORITÉ 2: Cache pickle local (pour développement local)
         cache_file = 'filter_options_cache.pkl'
         if os.path.exists(cache_file):
             cache_age = datetime.now() - datetime.fromtimestamp(os.path.getmtime(cache_file))
             if cache_age < timedelta(hours=24):
                 with open(cache_file, 'rb') as f:
                     options = pickle.load(f)
-                st.success(f"⚡ Cache chargé instantanément ! ({len(options.get('medicaments', []))} médicaments disponibles)")
+                st.success(f"⚡ Cache local chargé ! ({len(options.get('medicaments', []))} médicaments disponibles)")
                 return options
         
-        # Fallback vers JSON si pickle non disponible
+        # PRIORITÉ 3: Cache JSON local
         json_file = 'filter_options_cache.json'
         if os.path.exists(json_file):
             with open(json_file, 'r', encoding='utf-8') as f:
@@ -134,7 +154,7 @@ def get_base_filter_options():
             st.info("📄 Cache JSON chargé")
             return options
         
-        # Fallback vers BigQuery si aucun cache
+        # FALLBACK: BigQuery (lent mais fonctionne toujours)
         st.warning("⚠️ Aucun cache trouvé, chargement depuis BigQuery...")
         return get_base_filter_options_from_bigquery()
         
