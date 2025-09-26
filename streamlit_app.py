@@ -589,6 +589,39 @@ def load_data_background(nrows=None):
     if os.path.exists(parquet_path):
         try:
             df = pd.read_parquet(parquet_path, engine='pyarrow')
+            
+            # Filtrer les données non informatives
+            df = df[~df['l_cip13'].isin(['Non restitué', 'Non spécifié', 'Honoraires de dispensation'])]
+            df = df[df['l_cip13'].notna()]
+            
+            # Vérifier et créer les colonnes dérivées si nécessaire
+            if 'etablissement' not in df.columns:
+                df['etablissement'] = df['nom_etb'].astype(str).fillna('Non spécifié')
+                if 'raison_sociale_etb' in df.columns:
+                    df['etablissement'] = df['etablissement'].where(
+                        df['etablissement'] != 'nan', 
+                        df['raison_sociale_etb'].astype(str)
+                    )
+            
+            if 'medicament' not in df.columns:
+                df['medicament'] = df['L_ATC5'].astype(str).fillna('Non spécifié')
+            if 'categorie' not in df.columns:
+                df['categorie'] = df['categorie_jur'].astype(str).fillna('Non spécifiée')
+            if 'ville' not in df.columns:
+                df['ville'] = df['nom_ville'].astype(str).fillna('Non spécifiée')
+            if 'region' not in df.columns:
+                df['region'] = df['region_etb'].fillna(0)
+            if 'code_cip' not in df.columns:
+                df['code_cip'] = df['CIP13'].astype(str)
+            if 'libelle_cip' not in df.columns:
+                df['libelle_cip'] = df['l_cip13'].fillna('Non spécifié')
+            
+            # Calculs dérivés
+            if 'cout_par_boite' not in df.columns:
+                df['cout_par_boite'] = np.where(df['BOITES'] > 0, df['REM'] / df['BOITES'], 0)
+            if 'taux_remboursement' not in df.columns:
+                df['taux_remboursement'] = np.where(df['BSE'] > 0, (df['REM'] / df['BSE']) * 100, 0)
+            
             return df
         except Exception as e:
             st.error(f"❌ Erreur avec OPEN_PHMEV_2024.parquet: {e}")
