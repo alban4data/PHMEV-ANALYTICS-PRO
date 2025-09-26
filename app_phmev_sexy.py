@@ -49,7 +49,24 @@ st.markdown("""
     /* Global Styles */
     .stApp {
         font-family: 'Poppins', sans-serif;
-        background: var(--dark-bg);
+        background: var(--dark-bg) !important;
+        color: var(--text-light);
+    }
+    
+    /* Force dark background on main content area */
+    .main .block-container {
+        background: var(--dark-bg) !important;
+        color: var(--text-light);
+    }
+    
+    /* Ensure all Streamlit containers have dark background */
+    .stApp > div {
+        background: var(--dark-bg) !important;
+    }
+    
+    /* Main content area */
+    section.main > div {
+        background: var(--dark-bg) !important;
         color: var(--text-light);
     }
     
@@ -128,9 +145,38 @@ st.markdown("""
     }
     
     /* Sidebar Styles */
-    .css-1d391kg {
-        background: var(--card-bg);
+    .css-1d391kg, .css-1lcbmhc {
+        background: var(--card-bg) !important;
         border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    /* Force dark background on all content containers */
+    [data-testid="stAppViewContainer"] {
+        background: var(--dark-bg) !important;
+    }
+    
+    [data-testid="stHeader"] {
+        background: transparent !important;
+    }
+    
+    [data-testid="stToolbar"] {
+        background: transparent !important;
+    }
+    
+    /* Main content area - more specific selectors */
+    .main .block-container, 
+    [data-testid="stMainBlockContainer"] {
+        background: var(--dark-bg) !important;
+        color: var(--text-light);
+        padding-top: 1rem;
+    }
+    
+    /* Metrics and containers */
+    [data-testid="metric-container"] {
+        background: var(--card-bg) !important;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: var(--border-radius);
+        padding: 1rem;
     }
     
     /* Button Styles */
@@ -478,6 +524,29 @@ def load_data_background(nrows=None):
         st.info("🚀 Chargement ultra-rapide depuis le fichier Parquet optimisé")
         try:
             df = pd.read_parquet(parquet_path)
+            
+            # Vérifier si les colonnes dérivées existent déjà
+            if 'etablissement' not in df.columns:
+                st.info("🔧 Création des colonnes enrichies...")
+                # Création de colonnes enrichies avec gestion sécurisée des NaN
+                df['etablissement'] = df['nom_etb'].astype(str).fillna('Non spécifié')
+                if 'raison_sociale_etb' in df.columns:
+                    df['etablissement'] = df['etablissement'].where(
+                        df['etablissement'] != 'nan', 
+                        df['raison_sociale_etb'].astype(str)
+                    )
+                
+                df['medicament'] = df['L_ATC5'].astype(str).fillna('Non spécifié')
+                df['categorie'] = df['categorie_jur'].astype(str).fillna('Non spécifiée')
+                df['ville'] = df['nom_ville'].astype(str).fillna('Non spécifiée')
+                df['region'] = df['region_etb'].fillna(0)
+                df['code_cip'] = df['CIP13'].astype(str)
+                df['libelle_cip'] = df['l_cip13'].fillna('Non spécifié')
+                
+                # Calculs dérivés
+                df['cout_par_boite'] = np.where(df['BOITES'] > 0, df['REM'] / df['BOITES'], 0)
+                df['taux_remboursement'] = np.where(df['REM'] > 0, (df['BSE'] / df['REM']) * 100, 0)
+            
             return df
         except Exception as e:
             st.warning(f"⚠️ Erreur avec le fichier Parquet: {e}. Essai avec le CSV...")
