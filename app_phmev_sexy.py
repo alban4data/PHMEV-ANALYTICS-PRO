@@ -1091,73 +1091,85 @@ def initialize_app():
             st.session_state.data_preloaded = True
 
 def force_dark_theme():
-    """Force le thème sombre après chaque interaction"""
+    """Force le thème sombre de manière plus douce et lisible"""
     st.markdown("""
     <style>
-    /* Force dark theme on all elements - highest specificity */
-    .stApp, .stApp > div, .main, .main > div, 
-    [data-testid="stAppViewContainer"],
-    [data-testid="stMainBlockContainer"],
-    [data-testid="column"], 
-    .element-container,
-    .block-container {
+    /* Thème sombre équilibré - plus lisible */
+    .stApp {
         background-color: #0e1117 !important;
         color: #fafafa !important;
     }
     
-    /* Force dark on all divs */
-    .stApp div {
+    /* Main content avec contraste suffisant */
+    [data-testid="stAppViewContainer"] {
         background-color: #0e1117 !important;
     }
     
-    /* Specific overrides for reloaded content */
-    .stApp .main .block-container > div,
-    .stApp .main .block-container > div > div {
+    [data-testid="stMainBlockContainer"] {
         background-color: #0e1117 !important;
+        color: #fafafa !important;
+    }
+    
+    /* Colonnes avec fond légèrement plus clair pour la lisibilité */
+    [data-testid="column"] {
+        background-color: #1e2130 !important;
+        border-radius: 10px !important;
+        padding: 1rem !important;
+        margin: 0.5rem !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+    }
+    
+    /* Préserver la lisibilité des métriques et cartes */
+    [data-testid="metric-container"] {
+        background-color: #262730 !important;
+        color: #fafafa !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
+        border-radius: 10px !important;
+    }
+    
+    /* Tables et dataframes */
+    .dataframe {
+        background-color: #1e2130 !important;
+        color: #fafafa !important;
+    }
+    
+    /* Sidebar */
+    .css-1d391kg {
+        background-color: #1e2130 !important;
     }
     </style>
     
     <script>
-    // JavaScript fallback for dynamic content
-    function forceDarkTheme() {
-        // Force dark background on all elements
-        document.body.style.backgroundColor = '#0e1117';
-        
-        const elements = document.querySelectorAll('div, section, main');
-        elements.forEach(el => {
-            if (!el.classList.contains('stPlotlyChart')) {
+    // JavaScript plus doux pour maintenir la lisibilité
+    function maintainReadableTheme() {
+        // Appliquer uniquement aux conteneurs principaux
+        const mainContainers = document.querySelectorAll(
+            '[data-testid="stAppViewContainer"], ' +
+            '[data-testid="stMainBlockContainer"]'
+        );
+        mainContainers.forEach(el => {
+            if (el) {
                 el.style.backgroundColor = '#0e1117';
                 el.style.color = '#fafafa';
             }
         });
         
-        // Force dark on specific Streamlit elements
-        const streamlitElements = document.querySelectorAll(
-            '[data-testid="stAppViewContainer"], ' +
-            '[data-testid="stMainBlockContainer"], ' +
-            '[data-testid="column"], ' +
-            '.main, .block-container, .element-container'
-        );
-        streamlitElements.forEach(el => {
-            el.style.backgroundColor = '#0e1117';
-            el.style.color = '#fafafa';
+        // Colonnes avec fond plus clair pour la lisibilité
+        const columns = document.querySelectorAll('[data-testid="column"]');
+        columns.forEach(col => {
+            if (col) {
+                col.style.backgroundColor = '#1e2130';
+                col.style.borderRadius = '10px';
+                col.style.padding = '1rem';
+                col.style.margin = '0.5rem';
+                col.style.border = '1px solid rgba(255,255,255,0.1)';
+            }
         });
     }
     
-    // Apply immediately and after any DOM changes
-    forceDarkTheme();
-    setTimeout(forceDarkTheme, 100);
-    setTimeout(forceDarkTheme, 500);
-    setInterval(forceDarkTheme, 2000);
-    
-    // Listen for DOM changes
-    const observer = new MutationObserver(forceDarkTheme);
-    observer.observe(document.body, { 
-        childList: true, 
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['style', 'class']
-    });
+    // Application plus modérée
+    setTimeout(maintainReadableTheme, 200);
+    setInterval(maintainReadableTheme, 3000);
     </script>
     """, unsafe_allow_html=True)
 
