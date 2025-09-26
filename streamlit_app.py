@@ -582,22 +582,54 @@ def load_data_background(nrows=None):
     import os
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # UNIQUEMENT le fichier sample_10k (contient les 3,504,612 lignes)
-    parquet_sample_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_sample_10k.parquet')
+    # UNIQUEMENT le fichier parquet complet (contient toutes les données)
+    parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
     
-    # Utiliser UNIQUEMENT OPEN_PHMEV_2024_sample_10k.parquet
-    if os.path.exists(parquet_sample_path):
+    # Utiliser UNIQUEMENT OPEN_PHMEV_2024.parquet
+    if os.path.exists(parquet_path):
         try:
-            df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
+            df = pd.read_parquet(parquet_path, engine='pyarrow')
+            
+            # Filtrer les données non informatives
+            df = df[~df['l_cip13'].isin(['Non restitué', 'Non spécifié', 'Honoraires de dispensation'])]
+            df = df[df['l_cip13'].notna()]
+            
+            # Vérifier et créer les colonnes dérivées si nécessaire
+            if 'etablissement' not in df.columns:
+                df['etablissement'] = df['nom_etb'].astype(str).fillna('Non spécifié')
+                if 'raison_sociale_etb' in df.columns:
+                    df['etablissement'] = df['etablissement'].where(
+                        df['etablissement'] != 'nan', 
+                        df['raison_sociale_etb'].astype(str)
+                    )
+            
+            if 'medicament' not in df.columns:
+                df['medicament'] = df['L_ATC5'].astype(str).fillna('Non spécifié')
+            if 'categorie' not in df.columns:
+                df['categorie'] = df['categorie_jur'].astype(str).fillna('Non spécifiée')
+            if 'ville' not in df.columns:
+                df['ville'] = df['nom_ville'].astype(str).fillna('Non spécifiée')
+            if 'region' not in df.columns:
+                df['region'] = df['region_etb'].fillna(0)
+            if 'code_cip' not in df.columns:
+                df['code_cip'] = df['CIP13'].astype(str)
+            if 'libelle_cip' not in df.columns:
+                df['libelle_cip'] = df['l_cip13'].fillna('Non spécifié')
+            
+            # Calculs dérivés
+            if 'cout_par_boite' not in df.columns:
+                df['cout_par_boite'] = np.where(df['BOITES'] > 0, df['REM'] / df['BOITES'], 0)
+            if 'taux_remboursement' not in df.columns:
+                df['taux_remboursement'] = np.where(df['BSE'] > 0, (df['REM'] / df['BSE']) * 100, 0)
             return df
         except Exception as e:
-            st.error(f"❌ Erreur avec OPEN_PHMEV_2024_sample_10k.parquet: {e}")
+            st.error(f"❌ Erreur avec OPEN_PHMEV_2024.parquet: {e}")
             return None
     
     # Si le fichier n'existe pas, erreur
     else:
-        st.error("❌ Fichier OPEN_PHMEV_2024_sample_10k.parquet non trouvé !")
-        st.info("💡 Veuillez vous assurer que le fichier OPEN_PHMEV_2024_sample_10k.parquet est présent dans le répertoire.")
+        st.error("❌ Fichier OPEN_PHMEV_2024.parquet non trouvé !")
+        st.info("💡 Veuillez vous assurer que le fichier OPEN_PHMEV_2024.parquet est présent dans le répertoire.")
         return None
         try:
             import pyarrow.parquet as pq
@@ -639,7 +671,7 @@ def load_data_background(nrows=None):
             st.warning("⚠️ Fichier PHMEV principal non trouvé. Utilisation de données d'exemple pour la démonstration.")
             return create_sample_data()
         except ImportError:
-            st.error("❌ Impossible de charger les données. Veuillez ajouter le fichier OPEN_PHMEV_2024_sample_10k.parquet")
+            st.error("❌ Impossible de charger les données. Veuillez ajouter le fichier OPEN_PHMEV_2024.parquet")
             return None
     
     # Types de données optimisés pour économiser la mémoire
@@ -733,15 +765,15 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
         import os
         script_dir = os.path.dirname(os.path.abspath(__file__))
         
-        # UNIQUEMENT le fichier sample_10k (contient les 3,504,612 lignes)
-        parquet_sample_path = os.path.join(script_dir, 'OPEN_PHMEV_2024_sample_10k.parquet')
+        # UNIQUEMENT le fichier parquet complet (contient toutes les données)
+        parquet_path = os.path.join(script_dir, 'OPEN_PHMEV_2024.parquet')
         
-        # Utiliser UNIQUEMENT OPEN_PHMEV_2024_sample_10k.parquet
-        if os.path.exists(parquet_sample_path):
-            status_text.text("🚀 Chargement des 3,504,612 lignes...")
+        # Utiliser UNIQUEMENT OPEN_PHMEV_2024.parquet
+        if os.path.exists(parquet_path):
+            status_text.text("🚀 Chargement du fichier parquet complet...")
             progress_bar.progress(70)
             try:
-                df = pd.read_parquet(parquet_sample_path, engine='pyarrow')
+                df = pd.read_parquet(parquet_path, engine='pyarrow')
                 progress_bar.progress(100)
                 status_text.text("✅ Données chargées avec succès !")
                 
@@ -824,7 +856,7 @@ def load_data(nrows=None):  # Charger toutes les lignes par défaut
                 st.session_state.phmev_data_cached = df
                 return df
             except ImportError:
-                st.error("❌ Impossible de charger les données. Veuillez ajouter le fichier OPEN_PHMEV_2024_sample_10k.parquet")
+                st.error("❌ Impossible de charger les données. Veuillez ajouter le fichier OPEN_PHMEV_2024.parquet")
                 return None
         
         # Optimisation mémoire maximale (sans category pour éviter les erreurs)
@@ -1938,7 +1970,7 @@ def main():
         - **Lignes totales:** {len(df):,}
         - **Lignes filtrées:** {len(df_filtered):,}
         - **Taux de filtrage:** {(len(df_filtered)/len(df)*100):.1f}%
-        - **Source:** OPEN_PHMEV_2024_sample_10k.parquet
+        - **Source:** OPEN_PHMEV_2024.parquet
         
         ### 🔧 **Colonnes Analysées**
         - **BOITES:** Nombre de boîtes délivrées
