@@ -22,516 +22,308 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS ultra moderne et sexy
+# CSS léger pour embellir juste la partie résultats
 st.markdown("""
 <style>
-    /* Import Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-    
-    /* Variables CSS */
-    :root {
-        --primary-color: #667eea;
-        --secondary-color: #764ba2;
-        --accent-color: #f093fb;
-        --success-color: #4facfe;
-        --warning-color: #f6d55c;
-        --danger-color: #ff6b6b;
-        --dark-bg: #0e1117;
-        --card-bg: #1e2130;
-        --text-light: #fafafa;
-        --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        --shadow: 0 10px 30px rgba(0,0,0,0.3);
-        --border-radius: 15px;
-    }
-    
-    /* Global Styles */
-    .stApp {
-        font-family: 'Poppins', sans-serif;
-        background: var(--dark-bg) !important;
-        color: var(--text-light);
-    }
-    
-    /* Force dark background on main content area */
-    .main .block-container {
-        background: var(--dark-bg) !important;
-        color: var(--text-light);
-    }
-    
-    /* Ensure all Streamlit containers have dark background */
-    .stApp > div {
-        background: var(--dark-bg) !important;
-    }
-    
-    /* Main content area */
-    section.main > div {
-        background: var(--dark-bg) !important;
-        color: var(--text-light);
-    }
-    
-    /* Header Styles */
-    .main-header {
-        background: var(--gradient-1);
-        padding: 2rem;
-        border-radius: var(--border-radius);
-        text-align: center;
-        margin-bottom: 2rem;
-        box-shadow: var(--shadow);
-        animation: fadeInDown 0.8s ease-out;
-    }
-    
-    .main-header h1 {
-        font-size: 3rem;
-        font-weight: 700;
-        margin: 0;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        background: linear-gradient(45deg, #fff, #f0f0f0);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    
-    .main-header p {
-        font-size: 1.2rem;
-        margin: 0.5rem 0 0 0;
-        opacity: 0.9;
-    }
-    
-    /* Card Styles */
-    .metric-card {
-        background: var(--card-bg);
-        padding: 1.5rem;
-        border-radius: var(--border-radius);
-        border: 1px solid rgba(255,255,255,0.1);
-        box-shadow: var(--shadow);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+/* Colonnes avec fond contrasté pour bien voir les tableaux blancs */
+[data-testid="column"] {
+    background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%) !important;
+    border: 1px solid #94a3b8 !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+    margin: 0.5rem !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+}
+
+/* 🎯 VRAIES CARDS MODERNES - Design Premium */
+.kpi-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 2rem 1.5rem;
+    margin: 1rem 0.5rem;
+    min-height: 160px;
         position: relative;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 
+        0 4px 20px rgba(0,0,0,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.9);
+    text-align: center;
         overflow: hidden;
     }
     
-    .metric-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-    }
-    
-    .metric-card::before {
+/* Barre colorée selon le type de card */
+.kpi-card::before {
         content: '';
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        height: 4px;
-        background: var(--gradient-1);
-    }
-    
-    /* Info Cards */
-    .info-card {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-        padding: 1.5rem;
-        border-radius: var(--border-radius);
-        border-left: 4px solid var(--primary-color);
-        margin: 1rem 0;
-        backdrop-filter: blur(10px);
-        animation: fadeInUp 0.6s ease-out;
-    }
-    
-    .warning-card {
-        background: linear-gradient(135deg, rgba(246, 213, 92, 0.1), rgba(255, 107, 107, 0.1));
-        padding: 1.5rem;
-        border-radius: var(--border-radius);
-        border-left: 4px solid var(--warning-color);
-        margin: 1rem 0;
-        backdrop-filter: blur(10px);
-    }
-    
-    /* Sidebar Styles */
-    .css-1d391kg, .css-1lcbmhc {
-        background: var(--card-bg) !important;
-        border-right: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    /* Force dark background on all content containers */
-    [data-testid="stAppViewContainer"] {
-        background: var(--dark-bg) !important;
-    }
-    
-    [data-testid="stHeader"] {
-        background: transparent !important;
-    }
-    
-    [data-testid="stToolbar"] {
-        background: transparent !important;
-    }
-    
-    /* Main content area - more specific selectors */
-    .main .block-container, 
-    [data-testid="stMainBlockContainer"] {
-        background: var(--dark-bg) !important;
-        color: var(--text-light);
-        padding-top: 1rem;
-    }
-    
-    /* Force dark background on dynamic content */
-    .stApp > div > div {
-        background: var(--dark-bg) !important;
-    }
-    
-    /* Force dark on all containers that might reload */
-    div[data-testid="column"] {
-        background: var(--dark-bg) !important;
-    }
-    
-    /* Ensure all divs maintain dark background */
-    .main div {
-        background-color: var(--dark-bg) !important;
-    }
-    
-    /* Force dark on reloaded elements */
-    .element-container div {
-        background: var(--dark-bg) !important;
-    }
-    
-    /* Specific fix for filtered content */
-    .stApp .main .block-container > div {
-        background: var(--dark-bg) !important;
-    }
-    
-    /* Metrics and containers */
-    [data-testid="metric-container"] {
-        background: var(--card-bg) !important;
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: var(--border-radius);
-        padding: 1rem;
-    }
-    
-    /* Button Styles */
-    .stButton > button {
-        background: var(--gradient-1);
-        color: white;
-        border: none;
-        border-radius: var(--border-radius);
-        padding: 0.5rem 2rem;
+    height: 5px;
+    border-radius: 20px 20px 0 0;
+}
+
+.kpi-card.money::before { background: linear-gradient(90deg, #667eea, #764ba2); }
+.kpi-card.base::before { background: linear-gradient(90deg, #4facfe, #00f2fe); }
+.kpi-card.count::before { background: linear-gradient(90deg, #43e97b, #38f9d7); }
+
+/* Effet hover magnifique */
+.kpi-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 
+        0 25px 50px rgba(0,0,0,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.9);
+    border-color: rgba(102, 126, 234, 0.4);
+}
+
+/* Icône en haut */
+.kpi-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+/* Valeur principale - grosse et belle */
+.kpi-value {
+    font-size: 2.8rem;
+    font-weight: 800;
+    line-height: 1;
+    margin: 1rem 0;
+    background: linear-gradient(135deg, #1e293b, #475569);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Label élégant */
+.kpi-label {
+    font-size: 1rem;
         font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: var(--shadow);
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 15px 35px rgba(0,0,0,0.4);
-    }
-    
-    /* Download Button Styles */
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0.5rem 0;
+}
+
+/* Delta/Description */
+.kpi-delta {
+    font-size: 0.85rem;
+    color: #64748b;
+    opacity: 0.8;
+    font-style: italic;
+    margin-top: 0.5rem;
+}
+
+/* Tables plus jolies avec valeurs numériques centrées */
+.dataframe {
+    border-radius: 8px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.1) !important;
+    overflow: hidden !important;
+}
+
+/* Centrer toutes les valeurs numériques dans les tableaux */
+.dataframe td:nth-child(n+2),
+.dataframe th:nth-child(n+2) {
+    text-align: center !important;
+}
+
+/* Centrer spécifiquement les colonnes avec des valeurs numériques */
+.dataframe td[data-testid*="cell"]:has(span[title*="€"]),
+.dataframe td[data-testid*="cell"]:has(span[title*="%"]),
+.dataframe td[data-testid*="cell"]:has(span[title*="K"]),
+.dataframe td[data-testid*="cell"]:has(span[title*="M"]),
+.dataframe td[data-testid*="cell"]:has(span[title*="B"]) {
+    text-align: center !important;
+}
+
+/* Centrer les colonnes communes de résultats numériques */
+.dataframe td:contains("€"),
+.dataframe td:contains("%"),
+.dataframe td:contains("K"),
+.dataframe td:contains("M"),
+.dataframe td:contains("B") {
+    text-align: center !important;
+}
+
+/* Approche plus large - centrer toutes les colonnes sauf la première (noms) */
+.stDataFrame table tbody tr td:not(:first-child) {
+    text-align: center !important;
+}
+
+.stDataFrame table thead tr th:not(:first-child) {
+    text-align: center !important;
+}
+
+/* Centrer dans les tables Streamlit */
+[data-testid="stDataFrame"] table td:not(:first-child),
+[data-testid="stDataFrame"] table th:not(:first-child) {
+    text-align: center !important;
+}
+
+/* Headers de sections - Style normal et lisible */
+h2 {
+    color: #ffffff !important;
+    border-bottom: 2px solid rgba(255,255,255,0.2) !important;
+    padding-bottom: 0.5rem !important;
+    margin-bottom: 1rem !important;
+    font-weight: 600 !important;
+}
+
+/* Boutons download plus jolis */
     .stDownloadButton > button {
         background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
-        color: white !important;
         border: none !important;
-        border-radius: 10px !important;
-        padding: 0.6rem 1.5rem !important;
+    border-radius: 8px !important;
+    color: white !important;
         font-weight: 600 !important;
-        font-size: 0.9rem !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3) !important;
-        min-height: 2.5rem !important;
-        width: auto !important;
+    box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3) !important;
+    transition: transform 0.2s ease !important;
     }
     
     .stDownloadButton > button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4) !important;
-        background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%) !important;
-    }
-    
-    .stDownloadButton > button:active {
-        transform: translateY(0px) !important;
-    }
-    
-    /* Download Button */
-    .download-btn {
-        background: var(--gradient-3);
-        color: white;
-        border: none;
-        border-radius: var(--border-radius);
-        padding: 1rem 2rem;
-        font-weight: 600;
-        text-decoration: none;
-        display: inline-block;
-        transition: all 0.3s ease;
-        box-shadow: var(--shadow);
-        margin: 0.5rem;
-    }
-    
-    .download-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 15px 35px rgba(0,0,0,0.4);
-    }
-    
-    /* Animations */
-    @keyframes fadeInDown {
-        from {
-            opacity: 0;
-            transform: translateY(-30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-    }
-    
-    /* Loading Animation */
-    .loading-spinner {
-        animation: pulse 1.5s infinite;
-    }
-    
-    /* Table Styles */
-    .dataframe {
-        border-radius: var(--border-radius);
-        overflow: hidden;
-        box-shadow: var(--shadow);
-    }
-    
-    /* Progress Bar */
-    .progress-bar {
-        background: var(--gradient-1);
-        height: 4px;
-        border-radius: 2px;
-        margin: 1rem 0;
-        animation: pulse 2s infinite;
-    }
-    
-    /* Section Headers */
-    .section-header {
-        font-size: 1.8rem;
-        font-weight: 600;
-        margin: 2rem 0 1rem 0;
-        background: var(--gradient-1);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    /* Emoji Animations */
-    .emoji-bounce {
-        animation: bounce 2s infinite;
-    }
-    
-    @keyframes bounce {
-        0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-        40% { transform: translateY(-10px); }
-        60% { transform: translateY(-5px); }
-    }
-    
-    /* Glassmorphism Effect */
-    .glass-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: var(--border-radius);
-        padding: 1.5rem;
-        margin: 1rem 0;
-    }
-    
-    /* Gradient Text */
-    .gradient-text {
-        background: var(--gradient-1);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 600;
-    }
-    
-    /* Status Indicators */
-    .status-success {
-        color: var(--success-color);
-        font-weight: 600;
-    }
-    
-    .status-warning {
-        color: var(--warning-color);
-        font-weight: 600;
-    }
-    
-    /* Hover Effects */
-    .hover-glow:hover {
-        box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
-        transition: box-shadow 0.3s ease;
-    }
-    
-    /* KPI Cards Ultra Sexy */
-    .kpi-container {
-        background: linear-gradient(145deg, #ffffff 0%, #f8f9ff 100%);
-        padding: 2rem;
-        border-radius: 20px;
-        margin: 2rem 0;
-        box-shadow: 
-            0 20px 40px rgba(0,0,0,0.1),
-            inset 0 1px 0 rgba(255,255,255,0.9);
-        border: 1px solid rgba(102, 126, 234, 0.1);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .kpi-container::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 6px;
-        background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #4facfe);
-        border-radius: 20px 20px 0 0;
-    }
-    
-    .kpi-card {
-        background: linear-gradient(145deg, #ffffff 0%, #f0f2ff 100%);
-        border-radius: 16px;
-        padding: 1.8rem;
-        margin: 0.5rem;
-        box-shadow: 
-            0 8px 32px rgba(102, 126, 234, 0.15),
-            inset 0 1px 0 rgba(255,255,255,0.9);
-        border: 1px solid rgba(102, 126, 234, 0.08);
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .kpi-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 4px;
-        height: 100%;
-        background: linear-gradient(180deg, var(--gradient-1));
-        border-radius: 0 2px 2px 0;
-    }
-    
-    .kpi-card:hover {
-        transform: translateY(-8px) scale(1.02);
-        box-shadow: 
-            0 20px 60px rgba(102, 126, 234, 0.25),
-            inset 0 1px 0 rgba(255,255,255,0.9);
-        border-color: rgba(102, 126, 234, 0.2);
-    }
-    
-    .kpi-icon {
-        font-size: 2.5rem;
-        margin-bottom: 0.8rem;
-        display: block;
-        text-align: center;
-        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
-        animation: kpi-pulse 2s ease-in-out infinite;
-    }
-    
-    @keyframes kpi-pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-    }
-    
-    .kpi-value {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #2d3748;
-        margin: 0.5rem 0;
-        text-align: center;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        letter-spacing: -0.5px;
-    }
-    
-    .kpi-label {
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: #4a5568;
-        text-align: center;
-        margin: 0;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        opacity: 0.8;
-    }
-    
-    .kpi-delta {
-        font-size: 0.85rem;
-        font-weight: 500;
-        text-align: center;
-        margin-top: 0.5rem;
-        padding: 0.3rem 0.8rem;
-        border-radius: 12px;
-        background: rgba(79, 172, 254, 0.1);
-        color: #4facfe;
-        border: 1px solid rgba(79, 172, 254, 0.2);
-    }
-    
-    .kpi-section-title {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #2d3748;
-        text-align: center;
-        margin: 0 0 1.5rem 0;
-        position: relative;
-        padding-bottom: 0.8rem;
-    }
-    
-    .kpi-section-title::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 60px;
-        height: 3px;
-        background: linear-gradient(90deg, #667eea, #764ba2);
-        border-radius: 2px;
-    }
-    
-    /* Animations spéciales pour les KPIs */
-    .kpi-card:nth-child(1) { animation-delay: 0.1s; }
-    .kpi-card:nth-child(2) { animation-delay: 0.2s; }
-    .kpi-card:nth-child(3) { animation-delay: 0.3s; }
-    .kpi-card:nth-child(4) { animation-delay: 0.4s; }
-    
-    @keyframes kpi-slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .kpi-card {
-        animation: kpi-slideIn 0.8s ease-out forwards;
-    }
-    
-    /* Gradient backgrounds pour différents KPIs */
-    .kpi-card.boxes::before { background: linear-gradient(180deg, #667eea, #764ba2); }
-    .kpi-card.money::before { background: linear-gradient(180deg, #f093fb, #f5576c); }
-    .kpi-card.base::before { background: linear-gradient(180deg, #4facfe, #00f2fe); }
-    .kpi-card.count::before { background: linear-gradient(180deg, #f6d55c, #ff9a56); }
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4) !important;
+}
+
+/* Section d'infos dataset plus sombre et lisible */
+div[style*="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1))"] {
+    background: linear-gradient(135deg, #334155 0%, #475569 100%) !important;
+    color: white !important;
+    border: 1px solid #64748b !important;
+}
+
+/* Forcer le texte blanc dans la section d'infos */
+div[style*="backdrop-filter: blur(10px)"] {
+    background: linear-gradient(135deg, #334155 0%, #475569 100%) !important;
+    color: white !important;
+}
+
+div[style*="backdrop-filter: blur(10px)"] div {
+    color: white !important;
+}
+
+/* 🌙 FOND NOIR pour TOUTE la zone principale */
+[data-testid="stAppViewContainer"] .main .block-container,
+.stApp .main .block-container,
+section.main > div,
+.main > div.block-container {
+    background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%) !important;
+    border-radius: 20px !important;
+    padding: 2rem !important;
+    margin: 1rem !important;
+    box-shadow: 
+        0 10px 40px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    border: 1px solid #404040 !important;
+}
+
+/* Forcer le fond noir sur tous les conteneurs principaux */
+[data-testid="stAppViewContainer"],
+.stApp,
+section.main {
+    background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%) !important;
+}
+
+/* Texte blanc partout dans la zone principale */
+.main h1, .main h2, .main h3, .main h4, .main p, .main div, .main span {
+    color: white !important;
+}
+
+/* Titres normaux et lisibles */
+.main h1 {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+.main h2 {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.main h3 {
+    color: #ffffff !important;
+    font-weight: 500 !important;
+}
+
+/* Expandeurs plus lisibles */
+.main [data-testid="stExpander"] {
+    background: rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    border-radius: 10px !important;
+}
+
+.main [data-testid="stExpander"] summary {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 1.1rem !important;
+}
+
+.main [data-testid="stExpander"] div {
+    color: #ffffff !important;
+    background: rgba(255,255,255,0.05) !important;
+    padding: 1rem !important;
+    border-radius: 0 0 10px 10px !important;
+}
+
+.main [data-testid="stExpander"] p,
+.main [data-testid="stExpander"] strong {
+    color: #ffffff !important;
+}
+
+/* Colonnes adaptées au fond noir */
+.main [data-testid="column"] {
+    background: linear-gradient(145deg, #2a2a2a 0%, #3a3a3a 100%) !important;
+    border: 1px solid #505050 !important;
+}
+
+/* Cards ultra-contrastées */
+.main .kpi-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%) !important;
+    box-shadow: 
+        0 8px 30px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.9) !important;
+}
+
+/* 🎨 SIDEBAR - Titres en noir pour lisibilité */
+.sidebar .element-container h2,
+section[data-testid="stSidebar"] h2,
+.sidebar h2,
+[data-testid="stSidebar"] h2 {
+    color: #1a1a1a !important;
+    font-weight: 700 !important;
+    text-shadow: none !important;
+    border-bottom: 2px solid #667eea !important;
+}
+
+/* 🔄 Bouton Vider le Cache - Gradient Violet comme le titre */
+.stButton > button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 0.75rem 1.5rem !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+    transition: all 0.3s ease !important;
+    text-transform: none !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+}
+
+.stButton > button:active {
+    transform: translateY(0px) !important;
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.5) !important;
+}
 </style>
+
 """, unsafe_allow_html=True)
 
 # Cache intelligent avec session_state pour éviter les rechargements
@@ -1091,87 +883,8 @@ def initialize_app():
             st.session_state.data_preloaded = True
 
 def force_dark_theme():
-    """Force le thème sombre de manière plus douce et lisible"""
-    st.markdown("""
-    <style>
-    /* Thème sombre équilibré - plus lisible */
-    .stApp {
-        background-color: #0e1117 !important;
-        color: #fafafa !important;
-    }
-    
-    /* Main content avec contraste suffisant */
-    [data-testid="stAppViewContainer"] {
-        background-color: #0e1117 !important;
-    }
-    
-    [data-testid="stMainBlockContainer"] {
-        background-color: #0e1117 !important;
-        color: #fafafa !important;
-    }
-    
-    /* Colonnes avec fond légèrement plus clair pour la lisibilité */
-    [data-testid="column"] {
-        background-color: #1e2130 !important;
-        border-radius: 10px !important;
-        padding: 1rem !important;
-        margin: 0.5rem !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-    }
-    
-    /* Préserver la lisibilité des métriques et cartes */
-    [data-testid="metric-container"] {
-        background-color: #262730 !important;
-        color: #fafafa !important;
-        border: 1px solid rgba(255,255,255,0.2) !important;
-        border-radius: 10px !important;
-    }
-    
-    /* Tables et dataframes */
-    .dataframe {
-        background-color: #1e2130 !important;
-        color: #fafafa !important;
-    }
-    
-    /* Sidebar */
-    .css-1d391kg {
-        background-color: #1e2130 !important;
-    }
-    </style>
-    
-    <script>
-    // JavaScript plus doux pour maintenir la lisibilité
-    function maintainReadableTheme() {
-        // Appliquer uniquement aux conteneurs principaux
-        const mainContainers = document.querySelectorAll(
-            '[data-testid="stAppViewContainer"], ' +
-            '[data-testid="stMainBlockContainer"]'
-        );
-        mainContainers.forEach(el => {
-            if (el) {
-                el.style.backgroundColor = '#0e1117';
-                el.style.color = '#fafafa';
-            }
-        });
-        
-        // Colonnes avec fond plus clair pour la lisibilité
-        const columns = document.querySelectorAll('[data-testid="column"]');
-        columns.forEach(col => {
-            if (col) {
-                col.style.backgroundColor = '#1e2130';
-                col.style.borderRadius = '10px';
-                col.style.padding = '1rem';
-                col.style.margin = '0.5rem';
-                col.style.border = '1px solid rgba(255,255,255,0.1)';
-            }
-        });
-    }
-    
-    // Application plus modérée
-    setTimeout(maintainReadableTheme, 200);
-    setInterval(maintainReadableTheme, 3000);
-    </script>
-    """, unsafe_allow_html=True)
+    """Pas de thème - Streamlit par défaut"""
+    pass
 
 def main():
     # Forcer le thème sombre
@@ -1816,7 +1529,7 @@ def main():
     
     # 🏆 Top Produits pour les établissements sélectionnés
     if len(df_filtered) > 0:
-        st.markdown('## 🏆 Top Produits des Établissements Sélectionnés')
+        st.markdown('## 💊 Top Produits des Établissements Sélectionnés')
         
         # Analyse des produits les plus délivrés (exclure Non restitué)
         df_top_produits = df_filtered[
@@ -1945,62 +1658,7 @@ def main():
         else:
             st.info("🔍 Aucune molécule spécifique trouvée avec les filtres actuels.")
     
-    # Section supprimée sur demande utilisateur
-        
-        # Déterminer quelle colonne ATC utiliser
-        if atc4_filtre:
-            atc_col = 'L_ATC4'
-            atc_title = "Groupes Chimiques"
-        elif atc3_filtre:
-            atc_col = 'L_ATC3'
-            atc_title = "Sous-groupes Pharmacologiques"
-        elif atc2_filtre:
-            atc_col = 'L_ATC2'
-            atc_title = "Groupes Thérapeutiques"
-        else:
-            atc_col = 'l_atc1'
-            atc_title = "Systèmes Thérapeutiques"
-        
-        # Analyse par produit/molécule
-        df_produits = df_filtered.groupby(atc_col).agg({
-            'BOITES': 'sum',
-            'REM': 'sum',
-            'BSE': 'sum',
-            'etablissement': 'nunique',
-            'cout_par_boite': 'mean'
-        }).reset_index()
-        
-        df_produits.columns = ['Produit/Molécule', 'Boîtes', 'Remboursé', 'Remboursable', 'Nb Établissements', 'Coût Moyen/Boîte']
-        
-        # Formatage
-        df_produits['Boîtes'] = df_produits['Boîtes'].apply(format_number)
-        df_produits['Remboursé'] = df_produits['Remboursé'].apply(format_currency)
-        df_produits['Remboursable'] = df_produits['Remboursable'].apply(format_currency)
-        df_produits['Coût Moyen/Boîte'] = df_produits['Coût Moyen/Boîte'].apply(format_currency)
-        
-        st.markdown(f"### 📊 **{atc_title} Sélectionnés**")
-        st.dataframe(df_produits, use_container_width=True, hide_index=True)
-        
-        # Graphique des produits
-        if len(df_produits) > 1:
-            fig_produits = px.bar(
-                df_produits.head(10),
-                x='Produit/Molécule',
-                y=df_produits['Boîtes'].apply(lambda x: float(x.replace('K', '000').replace('M', '000000').replace(',', '')) if 'K' in x or 'M' in x else float(x.replace(',', ''))),
-                title=f"🧬 Top 10 {atc_title} par Boîtes Délivrées",
-                color_discrete_sequence=['#667eea']
-            )
-            
-            fig_produits.update_layout(
-                height=400,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='white'),
-                title_font_size=16,
-                xaxis_tickangle=-45
-            )
-            
-            st.plotly_chart(fig_produits, use_container_width=True)
+    # Section "📊 Systèmes Thérapeutiques Sélectionnés" supprimée sur demande utilisateur
     
     # 📋 Analyse des codes CIP si filtrés
     if cip_filtre or libelle_filtre:
