@@ -580,6 +580,7 @@ setTimeout(function() {
 def load_data_background(nrows=None):
     """🚀 Charge les données PHMEV en arrière-plan (cache désactivé pour éviter les erreurs mémoire)"""
     import os
+    import gc
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
     # UNIQUEMENT le fichier parquet complet (contient les 3,504,612 lignes)
@@ -588,11 +589,21 @@ def load_data_background(nrows=None):
     # Utiliser UNIQUEMENT OPEN_PHMEV_2024.parquet
     if os.path.exists(parquet_path):
         try:
+            # Message de progression pour Streamlit Cloud
+            progress_placeholder = st.empty()
+            progress_placeholder.info("🚀 Chargement des données PHMEV (3.5M lignes)...")
+            
+            # Optimisation mémoire pour Streamlit Cloud
             df = pd.read_parquet(parquet_path, engine='pyarrow')
+            progress_placeholder.info("✅ Données chargées - Traitement en cours...")
+            
+            # Force garbage collection après chargement
+            gc.collect()
             
             # Filtrer les données non informatives
             df = df[~df['l_cip13'].isin(['Non restitué', 'Non spécifié', 'Honoraires de dispensation'])]
             df = df[df['l_cip13'].notna()]
+            progress_placeholder.info("🔄 Création des colonnes dérivées...")
             
             # Vérifier et créer les colonnes dérivées si nécessaire
             if 'etablissement' not in df.columns:
@@ -622,9 +633,17 @@ def load_data_background(nrows=None):
             if 'taux_remboursement' not in df.columns:
                 df['taux_remboursement'] = np.where(df['BSE'] > 0, (df['REM'] / df['BSE']) * 100, 0)
             
+            progress_placeholder.success("✅ Données prêtes ! Application en cours de chargement...")
+            progress_placeholder.empty()
+            
             return df
+        except MemoryError:
+            st.error("❌ Erreur mémoire : Le fichier est trop volumineux pour Streamlit Cloud")
+            st.info("💡 Essayez de réduire la taille du fichier ou utilisez un échantillon")
+            return None
         except Exception as e:
             st.error(f"❌ Erreur avec OPEN_PHMEV_2024.parquet: {e}")
+            st.info(f"🔍 Type d'erreur: {type(e).__name__}")
             return None
     
     # Si le fichier n'existe pas, erreur
