@@ -3,9 +3,9 @@
 *.csv
 *.xlsx
 *.xls
-*.parquet
 OPEN_PHMEV_2024.CSV
-OPEN_PHMEV_2024.parquet
+# *.parquet - Commenté pour permettre le fichier Parquet optimisé
+# OPEN_PHMEV_2024.parquet - Fichier autorisé (59MB seulement)
 
 # Fichiers Python
 __pycache__/
