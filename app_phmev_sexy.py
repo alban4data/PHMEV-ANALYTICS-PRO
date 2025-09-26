@@ -171,6 +171,31 @@ st.markdown("""
         padding-top: 1rem;
     }
     
+    /* Force dark background on dynamic content */
+    .stApp > div > div {
+        background: var(--dark-bg) !important;
+    }
+    
+    /* Force dark on all containers that might reload */
+    div[data-testid="column"] {
+        background: var(--dark-bg) !important;
+    }
+    
+    /* Ensure all divs maintain dark background */
+    .main div {
+        background-color: var(--dark-bg) !important;
+    }
+    
+    /* Force dark on reloaded elements */
+    .element-container div {
+        background: var(--dark-bg) !important;
+    }
+    
+    /* Specific fix for filtered content */
+    .stApp .main .block-container > div {
+        background: var(--dark-bg) !important;
+    }
+    
     /* Metrics and containers */
     [data-testid="metric-container"] {
         background: var(--card-bg) !important;
@@ -1065,7 +1090,81 @@ def initialize_app():
             st.warning(f"⚠️ Chargement différé : {e}")
             st.session_state.data_preloaded = True
 
+def force_dark_theme():
+    """Force le thème sombre après chaque interaction"""
+    st.markdown("""
+    <style>
+    /* Force dark theme on all elements - highest specificity */
+    .stApp, .stApp > div, .main, .main > div, 
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMainBlockContainer"],
+    [data-testid="column"], 
+    .element-container,
+    .block-container {
+        background-color: #0e1117 !important;
+        color: #fafafa !important;
+    }
+    
+    /* Force dark on all divs */
+    .stApp div {
+        background-color: #0e1117 !important;
+    }
+    
+    /* Specific overrides for reloaded content */
+    .stApp .main .block-container > div,
+    .stApp .main .block-container > div > div {
+        background-color: #0e1117 !important;
+    }
+    </style>
+    
+    <script>
+    // JavaScript fallback for dynamic content
+    function forceDarkTheme() {
+        // Force dark background on all elements
+        document.body.style.backgroundColor = '#0e1117';
+        
+        const elements = document.querySelectorAll('div, section, main');
+        elements.forEach(el => {
+            if (!el.classList.contains('stPlotlyChart')) {
+                el.style.backgroundColor = '#0e1117';
+                el.style.color = '#fafafa';
+            }
+        });
+        
+        // Force dark on specific Streamlit elements
+        const streamlitElements = document.querySelectorAll(
+            '[data-testid="stAppViewContainer"], ' +
+            '[data-testid="stMainBlockContainer"], ' +
+            '[data-testid="column"], ' +
+            '.main, .block-container, .element-container'
+        );
+        streamlitElements.forEach(el => {
+            el.style.backgroundColor = '#0e1117';
+            el.style.color = '#fafafa';
+        });
+    }
+    
+    // Apply immediately and after any DOM changes
+    forceDarkTheme();
+    setTimeout(forceDarkTheme, 100);
+    setTimeout(forceDarkTheme, 500);
+    setInterval(forceDarkTheme, 2000);
+    
+    // Listen for DOM changes
+    const observer = new MutationObserver(forceDarkTheme);
+    observer.observe(document.body, { 
+        childList: true, 
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+    });
+    </script>
+    """, unsafe_allow_html=True)
+
 def main():
+    # Forcer le thème sombre
+    force_dark_theme()
+    
     # Interface de configuration
     st.sidebar.markdown("## ⚙️ **Configuration**")
     
@@ -1834,9 +1933,7 @@ def main():
         else:
             st.info("🔍 Aucune molécule spécifique trouvée avec les filtres actuels.")
     
-    # 💊 Analyse des molécules/produits si filtrés
-    if atc1_filtre or atc2_filtre or atc3_filtre or atc4_filtre:
-        st.markdown('<h2 class="section-header">💊 Analyse des Molécules/Produits</h2>', unsafe_allow_html=True)
+    # Section supprimée sur demande utilisateur
         
         # Déterminer quelle colonne ATC utiliser
         if atc4_filtre:
