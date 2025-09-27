@@ -478,7 +478,14 @@ def get_kpis(filters):
         """
         
         result = client.query(query).to_dataframe()
-        return result.iloc[0].to_dict() if len(result) > 0 else {}
+        if len(result) > 0:
+            kpis_dict = result.iloc[0].to_dict()
+            # S'assurer que toutes les valeurs numériques sont valides
+            for key, value in kpis_dict.items():
+                if pd.isna(value) or value is None:
+                    kpis_dict[key] = 0
+            return kpis_dict
+        return {}
     except Exception as e:
         st.error(f"❌ Erreur KPIs: {e}")
         return {}
@@ -829,10 +836,10 @@ def main():
         kpis = {}
     
     if kpis:
-        # Calcul du coût par boîte
-        total_rem = kpis.get('total_rem', 0)
-        total_boites = kpis.get('total_boites', 0)
-        cout_par_boite = total_rem / total_boites if total_boites > 0 else 0
+        # Calcul du coût par boîte avec gestion des valeurs None
+        total_rem = kpis.get('total_rem', 0) or 0
+        total_boites = kpis.get('total_boites', 0) or 0
+        cout_par_boite = total_rem / total_boites if total_boites and total_boites > 0 else 0
         
         col1, col2, col3, col4 = st.columns(4)
         
