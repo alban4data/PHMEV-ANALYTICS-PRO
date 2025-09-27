@@ -282,12 +282,11 @@ def get_base_filter_options():
                 options = json.load(f)
             return options
         
-        # FALLBACK: BigQuery (lent mais fonctionne toujours)
-        st.warning("⚠️ Aucun cache trouvé, chargement depuis BigQuery...")
+        # FALLBACK: BigQuery (silencieux)
         return get_base_filter_options_from_bigquery()
         
     except Exception as e:
-        st.error(f"❌ Erreur cache: {e}")
+        # Erreur silencieuse, fallback automatique
         return get_base_filter_options_from_bigquery()
 
 def get_base_filter_options_from_bigquery():
@@ -335,7 +334,7 @@ def get_base_filter_options_from_bigquery():
         return options
         
     except Exception as e:
-        st.error(f"❌ Erreur BigQuery: {e}")
+        # Erreur silencieuse pour éviter l'affichage technique
         return {}
 
 @st.cache_data(ttl=300)  # Cache 5 minutes pour les filtres dynamiques
@@ -411,7 +410,7 @@ def get_filtered_options(current_filters):
         return options
         
     except Exception as e:
-        st.error(f"❌ Erreur filtres dynamiques: {e}")
+        # Erreur silencieuse, retour aux options de base
         return {}
 
 def build_where_clause(filters):
@@ -484,7 +483,7 @@ def get_kpis(filters):
             return kpis_dict
         return {}
     except Exception as e:
-        st.error(f"❌ Erreur KPIs: {e}")
+        # Erreur silencieuse pour les KPIs
         return {}
 
 def get_top_data(table_type, filters, limit=50):
@@ -553,7 +552,7 @@ def get_top_data(table_type, filters, limit=50):
         return client.query(query).to_dataframe()
         
     except Exception as e:
-        st.error(f"❌ Erreur {table_type}: {e}")
+        # Erreur silencieuse pour les données
         return pd.DataFrame()
 
 def main():
@@ -574,8 +573,8 @@ def main():
     base_options = get_base_filter_options()
     
     if not base_options:
-        st.error("❌ Impossible de charger les options")
-        return
+        st.warning("⚠️ Chargement des données en cours...")
+        st.stop()
     
     # Test de connexion BigQuery (silencieux)
     client, project_id = init_bigquery()
@@ -790,13 +789,13 @@ def main():
                     result = subprocess.run(['python', 'generate_filter_cache.py'], 
                                           capture_output=True, text=True, timeout=120)
                     if result.returncode == 0:
-                        st.success("✅ Cache régénéré !")
+                        st.success("✅ Cache mis à jour")
                         st.cache_data.clear()
                         st.rerun()
                     else:
-                        st.error(f"❌ Erreur: {result.stderr}")
+                        st.warning("⚠️ Mise à jour impossible")
                 except Exception as e:
-                    st.error(f"❌ Erreur: {e}")
+                    st.warning("⚠️ Fonctionnalité temporairement indisponible")
     
     # KPIs (seulement si BigQuery disponible)
     client, project_id = init_bigquery()
@@ -804,7 +803,7 @@ def main():
         with st.spinner("📊 Calcul des KPIs..."):
             kpis = get_kpis(filters)
     else:
-        st.warning("⚠️ KPIs indisponibles - BigQuery non accessible")
+        # Mode cache uniquement - KPIs non disponibles
         kpis = {}
     
     if kpis:
