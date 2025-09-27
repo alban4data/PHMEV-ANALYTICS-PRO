@@ -5,7 +5,6 @@ Tous les filtres hiérarchiques + TOP N optimisé + Performance maximale
 
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import numpy as np
 from datetime import datetime
 from google.cloud import bigquery
@@ -19,53 +18,164 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS moderne
+# CSS thème mixte élégant
 st.markdown("""
 <style>
-.main-header {
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+/* Arrière-plan principal sombre pour tout le contenu */
+.main .block-container {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
     padding: 2rem;
-    border-radius: 10px;
+    border-radius: 20px;
+    margin: 10px;
+    min-height: calc(100vh - 20px);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+/* Arrière-plan de la page entière */
+.stApp {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+/* Header avec dégradé élégant */
+.main-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem;
+    border-radius: 20px;
     color: white;
     text-align: center;
     margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
 }
 
+/* KPI Cards avec thème clair */
 .kpi-container {
-    background: white;
+    background: linear-gradient(135deg, #ffffff 0%, #e8f4fd 100%);
     padding: 1.5rem;
-    border-radius: 12px;
-    border-left: 5px solid #667eea;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: 20px;
+    border-left: 6px solid #667eea;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     margin: 1rem 0;
+    transition: all 0.3s ease;
+}
+
+.kpi-container:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
 }
 
 .kpi-value {
     font-size: 2.5rem;
     font-weight: bold;
-    color: #667eea;
+    color: #4a5568;
     margin: 0;
 }
 
 .kpi-label {
-    color: #666;
+    color: #718096;
     font-size: 1rem;
     margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+/* Tableaux avec style transparent */
+[data-testid="stDataFrame"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 [data-testid="stDataFrame"] th {
-    background-color: #667eea !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     color: white !important;
     font-weight: bold !important;
+    border: none !important;
+    padding: 15px !important;
 }
 
 [data-testid="stDataFrame"] td {
-    background-color: white !important;
-    color: black !important;
+    background: transparent !important;
+    color: white !important;
+    border: none !important;
+    padding: 12px 15px !important;
 }
 
 [data-testid="stDataFrame"] tr:nth-child(even) td {
-    background-color: #f8f9fa !important;
+    background: rgba(255,255,255,0.05) !important;
+}
+
+[data-testid="stDataFrame"] tr:hover td {
+    background: rgba(102, 126, 234, 0.2) !important;
+    transition: all 0.2s ease;
+}
+
+/* Onglets avec style transparent */
+.stTabs [data-baseweb="tab-list"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 8px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    color: #a0a0a0;
+    background-color: transparent;
+    border-radius: 12px;
+    font-weight: 600;
+    padding: 12px 20px;
+    transition: all 0.3s ease;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background-color: rgba(102, 126, 234, 0.2);
+    color: #667eea;
+}
+
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    transform: translateY(-2px);
+}
+
+/* Métriques Streamlit avec thème clair */
+[data-testid="metric-container"] {
+    background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+[data-testid="metric-container"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+    border-color: #667eea;
+}
+
+/* Couleurs pour les valeurs des métriques */
+[data-testid="metric-container"] [data-testid="metric-value"] {
+    color: #4a5568 !important;
+    font-weight: bold !important;
+}
+
+[data-testid="metric-container"] [data-testid="metric-delta"] {
+    color: #38a169 !important;
+}
+
+
+/* Tous les textes en blanc dans la zone principale */
+.main .block-container h1,
+.main .block-container h2, 
+.main .block-container h3,
+.main .block-container h4,
+.main .block-container h5,
+.main .block-container h6,
+.main .block-container p,
+.main .block-container div,
+.main .block-container span,
+.main .block-container .stMarkdown {
+    color: white !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -94,28 +204,49 @@ def format_currency(value):
 # Configuration BigQuery
 @st.cache_resource
 def init_bigquery():
+    """Initialise BigQuery avec gestion d'erreurs robuste"""
     try:
         # Priorité 1: Utiliser les secrets Streamlit Cloud
         if "gcp_service_account" in st.secrets:
-            credentials_info = dict(st.secrets["gcp_service_account"])
-            credentials = service_account.Credentials.from_service_account_info(credentials_info)
-            client = bigquery.Client(credentials=credentials, project=credentials_info["project_id"])
-            return client, credentials_info["project_id"]
+            try:
+                credentials_info = dict(st.secrets["gcp_service_account"])
+                credentials = service_account.Credentials.from_service_account_info(credentials_info)
+                client = bigquery.Client(credentials=credentials, project=credentials_info["project_id"])
+                # Test rapide de connexion
+                client.query("SELECT 1").result()
+                return client, credentials_info["project_id"]
+            except Exception as e:
+                pass  # Silencieux
         
         # Priorité 2: Fichier local (développement)
         import os
-        if os.path.exists('test-db-473321-aed58eeb55a8.json'):
-            credentials = service_account.Credentials.from_service_account_file('test-db-473321-aed58eeb55a8.json')
-            client = bigquery.Client(credentials=credentials, project='test-db-473321')
-            return client, 'test-db-473321'
+        json_file = 'test-db-473321-aed58eeb55a8.json'
+        if os.path.exists(json_file):
+            try:
+                credentials = service_account.Credentials.from_service_account_file(json_file)
+                client = bigquery.Client(credentials=credentials, project='test-db-473321')
+                # Test rapide de connexion
+                client.query("SELECT 1").result()
+                pass  # Connexion réussie silencieusement
+                return client, 'test-db-473321'
+            except Exception as e:
+                pass  # Silencieux
         
-        # Fallback: Erreur explicite
-        st.error("❌ Aucune configuration BigQuery trouvée. Veuillez configurer les secrets dans Streamlit Cloud.")
+        # Priorité 3: Authentification par défaut Google Cloud
+        try:
+            client = bigquery.Client(project='test-db-473321')
+            # Test rapide de connexion
+            client.query("SELECT 1").result()
+            pass  # Connexion réussie silencieusement
+            return client, 'test-db-473321'
+        except Exception as e:
+            pass  # Silencieux
+        
+        # Fallback silencieux
         return None, None
         
     except Exception as e:
-        st.error(f"❌ Erreur de connexion BigQuery: {e}")
-        st.error("💡 Vérifiez la configuration des secrets dans Streamlit Cloud")
+        # Erreur silencieuse pour éviter de casser l'interface
         return None, None
 
 @st.cache_data(ttl=86400)  # Cache 24 heures
@@ -241,6 +372,10 @@ def get_filtered_options(current_filters):
         if current_filters.get('categories'):
             cat_list = "', '".join(current_filters['categories'])
             where_conditions.append(f"COALESCE(NULLIF(categorie_jur, ''), 'Non spécifiée') IN ('{cat_list}')")
+        
+        if current_filters.get('etablissements'):
+            etab_list = "', '".join(current_filters['etablissements'])
+            where_conditions.append(f"COALESCE(NULLIF(nom_etb, ''), NULLIF(raison_sociale_etb, ''), 'Non spécifié') IN ('{etab_list}')")
         
         where_clause = " AND ".join(where_conditions)
         
@@ -439,6 +574,13 @@ def main():
         st.error("❌ Impossible de charger les options")
         return
     
+    # Test de connexion BigQuery pour afficher le statut
+    client, project_id = init_bigquery()
+    if client:
+        st.sidebar.success("🔗 BigQuery connecté")
+    else:
+        st.sidebar.warning("⚠️ Mode cache uniquement")
+    
     # Sidebar - Filtres hiérarchiques avec mise à jour automatique
     st.sidebar.header("🎛️ Filtres Hiérarchiques ⚡")
     st.sidebar.caption("🔄 Mise à jour automatique activée")
@@ -460,7 +602,14 @@ def main():
     # Obtenir les options filtrées si des filtres sont appliqués
     if any(filters.values()):
         with st.spinner("⚡ Mise à jour des filtres..."):
-            filtered_options = get_filtered_options(filters)
+            # Test si BigQuery est disponible pour les filtres dynamiques
+            client, project_id = init_bigquery()
+            if client:
+                filtered_options = get_filtered_options(filters)
+            else:
+                # Fallback: utiliser les options de base (pas de filtrage dynamique)
+                st.warning("⚠️ Filtres dynamiques indisponibles, utilisation du cache local")
+                filtered_options = base_options
     else:
         filtered_options = base_options
     
@@ -480,7 +629,11 @@ def main():
     # Mise à jour des options si ATC2 sélectionné
     if filters.get('atc2'):
         with st.spinner("⚡ Mise à jour..."):
-            filtered_options = get_filtered_options(filters)
+            client, project_id = init_bigquery()
+            if client:
+                filtered_options = get_filtered_options(filters)
+            else:
+                filtered_options = base_options
     
     # ATC3 (conditionnel et dynamique)
     if filters.get('atc2'):
@@ -498,7 +651,11 @@ def main():
     # Mise à jour des options si ATC3 sélectionné
     if filters.get('atc3'):
         with st.spinner("⚡ Mise à jour..."):
-            filtered_options = get_filtered_options(filters)
+            client, project_id = init_bigquery()
+            if client:
+                filtered_options = get_filtered_options(filters)
+            else:
+                filtered_options = base_options
     
     # ATC4 (conditionnel et dynamique)
     if filters.get('atc3'):
@@ -516,7 +673,11 @@ def main():
     # Mise à jour des options si ATC4 sélectionné
     if filters.get('atc4'):
         with st.spinner("⚡ Mise à jour..."):
-            filtered_options = get_filtered_options(filters)
+            client, project_id = init_bigquery()
+            if client:
+                filtered_options = get_filtered_options(filters)
+            else:
+                filtered_options = base_options
     
     # ATC5 (conditionnel et dynamique)
     if filters.get('atc4'):
@@ -549,9 +710,25 @@ def main():
         key="categories_filter"
     )
     
+    # Recherche d'établissements (similaire aux médicaments)
+    st.sidebar.subheader("🏢 Recherche d'Établissements")
+    search_etab = st.sidebar.text_input(
+        "🔍 Rechercher un établissement", 
+        placeholder="Ex: chu, clinique, hopital...",
+        key="etab_search"
+    )
+    
+    # Filtrer les établissements selon la recherche
+    etab_options = current_options.get('etablissements', [])
+    if search_etab:
+        search_lower = search_etab.lower().strip()
+        etab_options = [etab for etab in etab_options if search_lower in etab.lower()]
+        etab_options.sort()
+    
     filters['etablissements'] = st.sidebar.multiselect(
         "🏢 Établissements", 
-        options=current_options.get('etablissements', []),
+        options=etab_options,
+        help=f"{'❌ Aucun établissement trouvé pour \"' + search_etab + '\"' if search_etab and not etab_options else f'✅ {len(etab_options)} établissements disponibles'}",
         key="etablissements_filter"
     )
     
@@ -642,42 +819,52 @@ def main():
                 except Exception as e:
                     st.error(f"❌ Erreur: {e}")
     
-    # KPIs
-    with st.spinner("📊 Calcul des KPIs..."):
-        kpis = get_kpis(filters)
+    # KPIs (seulement si BigQuery disponible)
+    client, project_id = init_bigquery()
+    if client:
+        with st.spinner("📊 Calcul des KPIs..."):
+            kpis = get_kpis(filters)
+    else:
+        st.warning("⚠️ KPIs indisponibles - BigQuery non accessible")
+        kpis = {}
     
     if kpis:
+        # Calcul du coût par boîte
+        total_rem = kpis.get('total_rem', 0)
+        total_boites = kpis.get('total_boites', 0)
+        cout_par_boite = total_rem / total_boites if total_boites > 0 else 0
+        
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             st.markdown(f"""
             <div class="kpi-container">
-                <div class="kpi-value">{format_currency(kpis.get('total_rem', 0))}</div>
-                <div class="kpi-label">💰 Montant Total Remboursé</div>
+                <div class="kpi-value">{format_number(kpis.get('total_boites', 0))}</div>
+                <div class="kpi-label">📦 Nombre de Boîtes</div>
             </div>
             """, unsafe_allow_html=True)
         
         with col2:
             st.markdown(f"""
             <div class="kpi-container">
-                <div class="kpi-value">{format_number(kpis.get('total_boites', 0))}</div>
-                <div class="kpi-label">📦 Boîtes Totales</div>
+                <div class="kpi-value">{format_currency(cout_par_boite)}</div>
+                <div class="kpi-label">💰 Coût par Boîte</div>
             </div>
             """, unsafe_allow_html=True)
         
         with col3:
             st.markdown(f"""
             <div class="kpi-container">
-                <div class="kpi-value">{kpis.get('nb_etablissements', 0)}</div>
-                <div class="kpi-label">🏥 Établissements</div>
+                <div class="kpi-value">{format_currency(kpis.get('total_rem', 0))}</div>
+                <div class="kpi-label">💸 Montant Remboursé</div>
             </div>
             """, unsafe_allow_html=True)
         
         with col4:
             st.markdown(f"""
             <div class="kpi-container">
-                <div class="kpi-value">{kpis.get('nb_medicaments', 0)}</div>
-                <div class="kpi-label">💊 Médicaments</div>
+                <div class="kpi-value">{kpis.get('nb_etablissements', 0)}</div>
+                <div class="kpi-label">🏥 Établissements</div>
             </div>
             """, unsafe_allow_html=True)
         
@@ -689,14 +876,15 @@ def main():
     with tab1:
         st.subheader("🏥 Top Établissements par Remboursement")
         
-        col_opt1, col_opt2 = st.columns(2)
-        with col_opt1:
-            limit_etabs = st.selectbox("Nombre à afficher", [20, 50, 100], index=1, key="limit_etabs")
-        with col_opt2:
-            show_chart = st.checkbox("📊 Graphique", value=True, key="chart_etabs")
+        limit_etabs = st.selectbox("Nombre à afficher", [20, 50, 100], index=1, key="limit_etabs")
         
         with st.spinner("🏥 Chargement TOP établissements..."):
-            df_etabs = get_top_data("etablissements", filters, limit_etabs)
+            client, project_id = init_bigquery()
+            if client:
+                df_etabs = get_top_data("etablissements", filters, limit_etabs)
+            else:
+                st.warning("⚠️ Données indisponibles - BigQuery non accessible")
+                df_etabs = pd.DataFrame()
         
         if len(df_etabs) > 0:
             # Formatage
@@ -711,10 +899,6 @@ def main():
             
             st.dataframe(df_display, use_container_width=True)
             
-            if show_chart:
-                fig = px.bar(df_etabs.head(15), x='REM', y='etablissement', orientation='h', title="Top 15 Établissements")
-                fig.update_layout(height=500, yaxis={'categoryorder': 'total ascending'})
-                st.plotly_chart(fig, use_container_width=True)
             
             csv = df_display.to_csv(index=False).encode('utf-8')
             st.download_button("📥 Télécharger", csv, f"etablissements_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv")
@@ -724,14 +908,15 @@ def main():
     with tab2:
         st.subheader("💊 Top Produits par Remboursement")
         
-        col_opt1, col_opt2 = st.columns(2)
-        with col_opt1:
-            limit_meds = st.selectbox("Nombre à afficher", [20, 50, 100], index=1, key="limit_meds")
-        with col_opt2:
-            show_chart_meds = st.checkbox("📊 Graphique", value=True, key="chart_meds")
+        limit_meds = st.selectbox("Nombre à afficher", [20, 50, 100], index=1, key="limit_meds")
         
         with st.spinner("💊 Chargement TOP médicaments..."):
-            df_meds = get_top_data("medicaments", filters, limit_meds)
+            client, project_id = init_bigquery()
+            if client:
+                df_meds = get_top_data("medicaments", filters, limit_meds)
+            else:
+                st.warning("⚠️ Données indisponibles - BigQuery non accessible")
+                df_meds = pd.DataFrame()
         
         if len(df_meds) > 0:
             # Formatage
@@ -746,10 +931,6 @@ def main():
             
             st.dataframe(df_display, use_container_width=True)
             
-            if show_chart_meds:
-                fig = px.bar(df_meds.head(15), x='REM', y='medicament', orientation='h', title="Top 15 Médicaments")
-                fig.update_layout(height=500, yaxis={'categoryorder': 'total ascending'})
-                st.plotly_chart(fig, use_container_width=True)
             
             csv = df_display.to_csv(index=False).encode('utf-8')
             st.download_button("📥 Télécharger", csv, f"medicaments_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv", key="dl_meds")
@@ -759,14 +940,15 @@ def main():
     with tab3:
         st.subheader("🧬 Top Molécules par Remboursement")
         
-        col_opt1, col_opt2 = st.columns(2)
-        with col_opt1:
-            limit_mols = st.selectbox("Nombre à afficher", [20, 50, 100], index=1, key="limit_mols")
-        with col_opt2:
-            show_chart_mols = st.checkbox("📊 Graphique", value=True, key="chart_mols")
+        limit_mols = st.selectbox("Nombre à afficher", [20, 50, 100], index=1, key="limit_mols")
         
         with st.spinner("🧬 Chargement TOP molécules..."):
-            df_mols = get_top_data("molecules", filters, limit_mols)
+            client, project_id = init_bigquery()
+            if client:
+                df_mols = get_top_data("molecules", filters, limit_mols)
+            else:
+                st.warning("⚠️ Données indisponibles - BigQuery non accessible")
+                df_mols = pd.DataFrame()
         
         if len(df_mols) > 0:
             # Formatage
@@ -781,10 +963,6 @@ def main():
             
             st.dataframe(df_display, use_container_width=True)
             
-            if show_chart_mols:
-                fig = px.bar(df_mols.head(15), x='REM', y='molecule', orientation='h', title="Top 15 Molécules")
-                fig.update_layout(height=500, yaxis={'categoryorder': 'total ascending'})
-                st.plotly_chart(fig, use_container_width=True)
             
             csv = df_display.to_csv(index=False).encode('utf-8')
             st.download_button("📥 Télécharger", csv, f"molecules_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv", key="dl_mols")
