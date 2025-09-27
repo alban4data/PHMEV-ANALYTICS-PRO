@@ -767,7 +767,7 @@ def main():
         st.sidebar.success(f"🎯 {active_filters} filtre(s) actif(s)")
     
     # Boutons d'action
-    col1, col2, col3 = st.sidebar.columns(3)
+    col1, col2 = st.sidebar.columns(2)
     with col1:
         if st.button("🔄 Reset", width="stretch"):
             # Clear all session state keys for filters
@@ -780,22 +780,6 @@ def main():
         if st.button("⚡ Actualiser", width="stretch"):
             st.cache_data.clear()
             st.rerun()
-    
-    with col3:
-        if st.button("🔧 Cache", width="stretch", help="Régénérer le cache des filtres"):
-            with st.spinner("Régénération du cache..."):
-                import subprocess
-                try:
-                    result = subprocess.run(['python', 'generate_filter_cache.py'], 
-                                          capture_output=True, text=True, timeout=120)
-                    if result.returncode == 0:
-                        st.success("✅ Cache mis à jour")
-                        st.cache_data.clear()
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ Mise à jour impossible")
-                except Exception as e:
-                    st.warning("⚠️ Fonctionnalité temporairement indisponible")
     
     # KPIs (seulement si BigQuery disponible)
     client, project_id = init_bigquery()
