@@ -262,7 +262,6 @@ def get_base_filter_options():
         try:
             from filter_cache_embedded import get_embedded_cache
             options = get_embedded_cache()
-            st.success(f"🚀 Cache intégré chargé ! ({len(options.get('medicaments', []))} médicaments disponibles)")
             return options
         except ImportError:
             pass
@@ -274,7 +273,6 @@ def get_base_filter_options():
             if cache_age < timedelta(hours=24):
                 with open(cache_file, 'rb') as f:
                     options = pickle.load(f)
-                st.success(f"⚡ Cache local chargé ! ({len(options.get('medicaments', []))} médicaments disponibles)")
                 return options
         
         # PRIORITÉ 3: Cache JSON local
@@ -282,7 +280,6 @@ def get_base_filter_options():
         if os.path.exists(json_file):
             with open(json_file, 'r', encoding='utf-8') as f:
                 options = json.load(f)
-            st.info("📄 Cache JSON chargé")
             return options
         
         # FALLBACK: BigQuery (lent mais fonctionne toujours)
@@ -573,20 +570,15 @@ def main():
     if 'filters' not in st.session_state:
         st.session_state.filters = {}
     
-    # Chargement des options de base
-    with st.spinner("🚀 Chargement des options de filtres..."):
-        base_options = get_base_filter_options()
+    # Chargement des options de base (optimisé)
+    base_options = get_base_filter_options()
     
     if not base_options:
         st.error("❌ Impossible de charger les options")
         return
     
-    # Test de connexion BigQuery pour afficher le statut
+    # Test de connexion BigQuery (silencieux)
     client, project_id = init_bigquery()
-    if client:
-        st.sidebar.success("🔗 BigQuery connecté")
-    else:
-        st.sidebar.warning("⚠️ Mode cache uniquement")
     
     # Sidebar - Filtres hiérarchiques avec mise à jour automatique
     st.sidebar.header("🎛️ Filtres Hiérarchiques ⚡")
@@ -606,19 +598,14 @@ def main():
         key="atc1_filter"
     )
     
-    # Obtenir les options filtrées si des filtres sont appliqués
-    if any(filters.values()):
-        with st.spinner("⚡ Mise à jour des filtres..."):
-            # Test si BigQuery est disponible pour les filtres dynamiques
-            client, project_id = init_bigquery()
-            if client:
-                filtered_options = get_filtered_options(filters)
-            else:
-                # Fallback: utiliser les options de base (pas de filtrage dynamique)
-                st.warning("⚠️ Filtres dynamiques indisponibles, utilisation du cache local")
-                filtered_options = base_options
-    else:
-        filtered_options = base_options
+    # Fonction pour obtenir les options filtrées de manière optimisée
+    def get_current_options(current_filters):
+        if any(current_filters.values()) and client:
+            return get_filtered_options(current_filters)
+        return base_options
+    
+    # Options initiales
+    filtered_options = get_current_options(filters)
     
     # ATC2 (conditionnel et dynamique)
     if filters['atc1']:
@@ -635,12 +622,7 @@ def main():
     
     # Mise à jour des options si ATC2 sélectionné
     if filters.get('atc2'):
-        with st.spinner("⚡ Mise à jour..."):
-            client, project_id = init_bigquery()
-            if client:
-                filtered_options = get_filtered_options(filters)
-            else:
-                filtered_options = base_options
+        filtered_options = get_current_options(filters)
     
     # ATC3 (conditionnel et dynamique)
     if filters.get('atc2'):
@@ -657,12 +639,7 @@ def main():
     
     # Mise à jour des options si ATC3 sélectionné
     if filters.get('atc3'):
-        with st.spinner("⚡ Mise à jour..."):
-            client, project_id = init_bigquery()
-            if client:
-                filtered_options = get_filtered_options(filters)
-            else:
-                filtered_options = base_options
+        filtered_options = get_current_options(filters)
     
     # ATC4 (conditionnel et dynamique)
     if filters.get('atc3'):
@@ -679,12 +656,7 @@ def main():
     
     # Mise à jour des options si ATC4 sélectionné
     if filters.get('atc4'):
-        with st.spinner("⚡ Mise à jour..."):
-            client, project_id = init_bigquery()
-            if client:
-                filtered_options = get_filtered_options(filters)
-            else:
-                filtered_options = base_options
+        filtered_options = get_current_options(filters)
     
     # ATC5 (conditionnel et dynamique)
     if filters.get('atc4'):
@@ -699,21 +671,21 @@ def main():
         filters['atc5'] = []
         st.sidebar.multiselect("ATC Niveau 5", [], disabled=True, help="Sélectionnez d'abord ATC Niveau 4")
     
+    # Mise à jour finale des options avec tous les filtres ATC
+    filtered_options = get_current_options(filters)
+    
     # Autres filtres dynamiques
     st.sidebar.subheader("🏥 Filtres Géographiques & Organisationnels")
     
-    # Utiliser les options filtrées pour les autres filtres aussi
-    current_options = filtered_options if any(filters.values()) else base_options
-    
     filters['villes'] = st.sidebar.multiselect(
         "🏙️ Villes", 
-        options=current_options.get('villes', []),
+        options=filtered_options.get('villes', []),
         key="villes_filter"
     )
     
     filters['categories'] = st.sidebar.multiselect(
         "🏥 Catégories", 
-        options=current_options.get('categories', []),
+        options=filtered_options.get('categories', []),
         key="categories_filter"
     )
     
@@ -726,7 +698,7 @@ def main():
     )
     
     # Filtrer les établissements selon la recherche
-    etab_options = current_options.get('etablissements', [])
+    etab_options = filtered_options.get('etablissements', [])
     if search_etab:
         search_lower = search_etab.lower().strip()
         etab_options = [etab for etab in etab_options if search_lower in etab.lower()]
@@ -759,7 +731,7 @@ def main():
     }
     
     # Utiliser les médicaments filtrés selon les autres critères
-    med_options = current_options.get('medicaments', [])
+    med_options = filtered_options.get('medicaments', [])
     
     if search_term:
         search_lower = search_term.lower().strip()
@@ -798,7 +770,7 @@ def main():
     # Boutons d'action
     col1, col2, col3 = st.sidebar.columns(3)
     with col1:
-        if st.button("🔄 Reset", use_container_width=True):
+        if st.button("🔄 Reset", width="stretch"):
             # Clear all session state keys for filters
             for key in list(st.session_state.keys()):
                 if key.endswith('_filter') or key == 'med_search':
@@ -806,12 +778,12 @@ def main():
             st.rerun()
     
     with col2:
-        if st.button("⚡ Actualiser", use_container_width=True):
+        if st.button("⚡ Actualiser", width="stretch"):
             st.cache_data.clear()
             st.rerun()
     
     with col3:
-        if st.button("🔧 Cache", use_container_width=True, help="Régénérer le cache des filtres"):
+        if st.button("🔧 Cache", width="stretch", help="Régénérer le cache des filtres"):
             with st.spinner("Régénération du cache..."):
                 import subprocess
                 try:
@@ -836,9 +808,16 @@ def main():
         kpis = {}
     
     if kpis:
-        # Calcul du coût par boîte avec gestion des valeurs None
-        total_rem = kpis.get('total_rem', 0) or 0
-        total_boites = kpis.get('total_boites', 0) or 0
+        # Calcul du coût par boîte avec gestion robuste des valeurs None/NaN
+        total_rem = kpis.get('total_rem', 0)
+        total_boites = kpis.get('total_boites', 0)
+        
+        # Conversion sécurisée des valeurs
+        if pd.isna(total_rem) or total_rem is None:
+            total_rem = 0
+        if pd.isna(total_boites) or total_boites is None:
+            total_boites = 0
+            
         cout_par_boite = total_rem / total_boites if total_boites and total_boites > 0 else 0
         
         col1, col2, col3, col4 = st.columns(4)
@@ -904,7 +883,7 @@ def main():
             
             df_display.columns = ['Établissement', 'Ville', 'Catégorie', 'Montant Remboursé', 'Base Remboursable', 'Boîtes', 'Coût/Boîte', 'Taux Remb.']
             
-            st.dataframe(df_display, use_container_width=True)
+            st.dataframe(df_display, width="stretch")
             
             
             csv = df_display.to_csv(index=False).encode('utf-8')
@@ -936,7 +915,7 @@ def main():
             
             df_display.columns = ['Médicament', 'ATC1', 'Libellé ATC1', 'Montant Remboursé', 'Base Remboursable', 'Boîtes', 'Nb Établissements', 'Coût/Boîte', 'Taux Remb.']
             
-            st.dataframe(df_display, use_container_width=True)
+            st.dataframe(df_display, width="stretch")
             
             
             csv = df_display.to_csv(index=False).encode('utf-8')
@@ -968,7 +947,7 @@ def main():
             
             df_display.columns = ['Molécule', 'ATC1', 'Libellé ATC1', 'Montant Remboursé', 'Base Remboursable', 'Boîtes', 'Nb Établissements', 'Coût/Boîte', 'Taux Remb.']
             
-            st.dataframe(df_display, use_container_width=True)
+            st.dataframe(df_display, width="stretch")
             
             
             csv = df_display.to_csv(index=False).encode('utf-8')
